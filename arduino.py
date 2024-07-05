@@ -2,7 +2,7 @@ import serial
 import time
 
 # Configura la conexión serial con el ESP32
-ser = serial.Serial('COM3', 115200)  # Reemplaza 'COM3' con el puerto correspondiente en tu sistema
+ser = serial.Serial('/dev/cu.usbserial-0001', 115200)  
 
 # Espera un poco para asegurarse de que la conexión se haya establecido
 time.sleep(2)
