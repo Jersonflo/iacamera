@@ -1,8 +1,6 @@
 import cv2
 import numpy as np
-from screeninfo import get_monitors
 from math import sqrt
-import tkinter as tk
 
 # Función para calcular el área de intersección de dos rectángulos
 def calcular_area_interseccion(x1, y1, x2, y2, x3, y3, x4, y4):
@@ -16,32 +14,6 @@ def calcular_area_interseccion(x1, y1, x2, y2, x3, y3, x4, y4):
         return inter_width * inter_height
     return 0
 
-# Función para calcular el PPI
-def calculate_ppi(resolution_width, resolution_height, diagonal_size_inch):
-    diagonal_resolution = (resolution_width**2 + resolution_height**2) ** 0.5
-    ppi = diagonal_resolution / diagonal_size_inch
-    return ppi
-
-# Obtener la resolución de la pantalla y el tamaño diagonal en pulgadas usando tkinter
-def get_screen_info():
-    root = tk.Tk()
-    resolution_width = root.winfo_screenwidth()
-    resolution_height = root.winfo_screenheight()
-    root.destroy()
-
-    # Intentar obtener la información de la pantalla con screeninfo
-    monitor = get_monitors()[0]
-    width_mm = monitor.width_mm
-    height_mm = monitor.height_mm
-
-    if width_mm is None or height_mm is None:
-        # Si no se pudo obtener la información física, usar valores predeterminados
-        raise ValueError("No se pudo obtener la información física de la pantalla.")
-
-    # Calcular el tamaño diagonal en pulgadas
-    diagonal_size_inch = sqrt(width_mm**2 + height_mm**2) / 25.4
-    return resolution_width, resolution_height, diagonal_size_inch
-
 # Cargar el modelo de DNN
 net = cv2.dnn.readNetFromCaffe('deploy.prototxt', 'res10_300x300_ssd_iter_140000.caffemodel')
 
@@ -50,18 +22,6 @@ cap = cv2.VideoCapture(0)
 if not cap.isOpened():
     print("No se puede abrir la cámara")
     exit()
-
-try:
-    resolution_width, resolution_height, diagonal_size_inch = get_screen_info()
-except ValueError as e:
-    print(e)
-    exit()
-
-ppi = calculate_ppi(resolution_width, resolution_height, diagonal_size_inch)
-
-print(f"Screen resolution: {resolution_width} x {resolution_height}")
-print(f"Diagonal size: {diagonal_size_inch:.2f} inches")
-print(f"Calculated PPI: {ppi:.2f}")
 
 while True:
     ret, frame = cap.read()
@@ -94,23 +54,26 @@ while True:
         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
         cx1, cy1 = (x1 + x2) // 2, (y1 + y2) // 2
         cv2.line(frame, (cx1, 0), (cx1, frame.shape[0]), (0, 0, 255), 2)
+        cv2.circle(frame, (cx1, cy1), 5, (0, 0, 255), -1)  # Dibuja un punto en el centro del rostro
 
-        # Conversión de píxeles a centímetros usando PPI
-        pixel_to_cm = 2.54 / ppi
+        # Conversión de píxeles a centímetros (1 píxel = 0.0264583 cm)
+        pixel_to_cm = 0.0264583
         width1_cm = (x2 - x1) * pixel_to_cm
         height1_cm = (y2 - y1) * pixel_to_cm
         area1_cm2 = width1_cm * height1_cm
 
         # Mostrar las coordenadas y el área en la terminal para el primer rostro
-        print(f"Rostro 1 - Área: {area1_cm2:.2f} cm^2")
+        #print(f"Rostro 1 - Área: {area1_cm2:.2f} cm^2")
 
-        total_area_cm2 = (resolution_width * resolution_height) * (pixel_to_cm ** 2)
+        total_area_cm2 = (w * h) * (pixel_to_cm ** 2)
+        #print(total_area_cm2)
 
         if len(faces) > 1:
             (x3, y3, x4, y4) = faces[1]
             cv2.rectangle(frame, (x3, y3), (x4, y4), (0, 255, 0), 2)
             cx2, cy2 = (x3 + x4) // 2, (y3 + y4) // 2
             cv2.line(frame, (cx2, 0), (cx2, frame.shape[0]), (0, 0, 255), 2)
+            cv2.circle(frame, (cx2, cy2), 5, (0, 0, 255), -1)  # Dibuja un punto en el centro del rostro
 
             width2_cm = (x4 - x3) * pixel_to_cm
             height2_cm = (y4 - y3) * pixel_to_cm
@@ -123,8 +86,8 @@ while True:
             area_final_cm2 = total_area_cm2 - area1_cm2 - area2_cm2 + area_interseccion
 
             # Mostrar las coordenadas y el área en la terminal para el segundo rostro
-            print(f"Rostro 2 - Área: {area2_cm2:.2f} cm^2")
-            print(f"Área de intersección: {area_interseccion:.2f} cm^2")
+           # print(f"Rostro 2 - Área: {area2_cm2:.2f} cm^2")
+            #print(f"Área de intersección: {area_interseccion:.2f} cm^2")
             print(f"Área final: {area_final_cm2:.2f} cm^2")
         else:
             # Si solo hay un rostro, el área final es el área total de la ventana menos el área del rostro
