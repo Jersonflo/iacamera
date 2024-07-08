@@ -54,6 +54,7 @@ while True:
         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
         cx1, cy1 = (x1 + x2) // 2, (y1 + y2) // 2
         cv2.line(frame, (cx1, 0), (cx1, frame.shape[0]), (0, 0, 255), 2)
+        cv2.circle(frame, (cx1, cy1), 5, (0, 0, 255), -1)  # Dibuja un punto en el centro del rostro
 
         # Conversión de píxeles a centímetros (1 píxel = 0.0264583 cm)
         pixel_to_cm = 0.0264583
@@ -62,15 +63,20 @@ while True:
         area1_cm2 = width1_cm * height1_cm
 
         # Mostrar las coordenadas y el área en la terminal para el primer rostro
-        print(f"Rostro 1 - Área: {area1_cm2:.2f} cm^2")
+        #print(f"Rostro 1 - Área: {area1_cm2:.2f} cm^2")
 
         total_area_cm2 = (w * h) * (pixel_to_cm ** 2)
+<<<<<<< HEAD
+=======
+        #print(total_area_cm2)
+>>>>>>> 79a0f95e96a0943ab3ef905fab64cae3af5be0e6
 
         if len(faces) > 1:
             (x3, y3, x4, y4) = faces[1]
             cv2.rectangle(frame, (x3, y3), (x4, y4), (0, 255, 0), 2)
             cx2, cy2 = (x3 + x4) // 2, (y3 + y4) // 2
             cv2.line(frame, (cx2, 0), (cx2, frame.shape[0]), (0, 0, 255), 2)
+            cv2.circle(frame, (cx2, cy2), 5, (0, 0, 255), -1)  # Dibuja un punto en el centro del rostro
 
             width2_cm = (x4 - x3) * pixel_to_cm
             height2_cm = (y4 - y3) * pixel_to_cm
@@ -83,8 +89,8 @@ while True:
             area_final_cm2 = total_area_cm2 - area1_cm2 - area2_cm2 + area_interseccion
 
             # Mostrar las coordenadas y el área en la terminal para el segundo rostro
-            print(f"Rostro 2 - Área: {area2_cm2:.2f} cm^2")
-            print(f"Área de intersección: {area_interseccion:.2f} cm^2")
+           # print(f"Rostro 2 - Área: {area2_cm2:.2f} cm^2")
+            #print(f"Área de intersección: {area_interseccion:.2f} cm^2")
             print(f"Área final: {area_final_cm2:.2f} cm^2")
         else:
             # Si solo hay un rostro, el área final es el área total de la ventana menos el área del rostro
