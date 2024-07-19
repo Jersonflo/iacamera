@@ -1,27 +1,14 @@
-#include <ESP32Servo.h>
+#include <Arduino.h>
 
-
-Servo miServo;
-
-#define servoPin 26       //Pin al que conectamos el cable naranja del servo.
-
-void setup() {   
-  miServo.attach(servoPin);
-  miServo.write(0);       //Ángulo de giro en grados.
-} 
+void setup() {
+  Serial.begin(115200);  // Inicializa la comunicación serial a 115200 baudios
+}
 
 void loop() {
-
-  delay(2000); 
-  miServo.write(90);
-
-  delay(2000); 
-  miServo.write(180);
-
-  delay(2000); 
-  miServo.write(90);
-
-  delay(2000); 
-  miServo.write(0);
-  
+  if (Serial.available()) {
+    String data = Serial.readStringUntil('\n');  // Lee los datos recibidos hasta el carácter de nueva línea
+    Serial.print("Recibido: ");
+    Serial.println(data);  // Imprime los datos recibidos
+  }
+  delay(100);  // Espera un poco antes de la próxima lectura
 }
