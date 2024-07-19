@@ -75,11 +75,6 @@ while True:
         print(f"Rostro seleccionado - Área: {area_cm2:.2f} cm^2")
 
         total_area_cm2 = (w * h) * (pixel_to_cm ** 2)
-<<<<<<< HEAD
-=======
-        #print(total_area_cm2)
->>>>>>> 79a0f95e96a0943ab3ef905fab64cae3af5be0e6
-
         if len(faces) > 1:
             (x3, y3, x4, y4) = faces[1]
             cv2.rectangle(frame, (x3, y3), (x4, y4), (0, 255, 0), 2)
