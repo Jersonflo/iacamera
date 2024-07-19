@@ -71,10 +71,12 @@ while True:
         area_cm2 = width_cm * height_cm
 
         # Mostrar las coordenadas y el área en la terminal para el rostro seleccionado
-        #print(f"Rostro seleccionado - Coordenadas: (X1, Y1) = ({x1}, {y1}), (X2, Y2) = ({x2}, {y2})")
+        print(f"Rostro seleccionado - Coordenadas: (X1, Y1) = ({x1}, {y1}), (X2, Y2) = ({x2}, {y2})")
         print(f"Rostro seleccionado - Área: {area_cm2:.2f} cm^2")
 
         total_area_cm2 = (w * h) * (pixel_to_cm ** 2)
+        print(f"Área total de la ventana: {total_area_cm2:.2f} cm^2")
+
         if len(faces) > 1:
             (x3, y3, x4, y4) = faces[1]
             cv2.rectangle(frame, (x3, y3), (x4, y4), (0, 255, 0), 2)
@@ -93,7 +95,7 @@ while True:
             area_final_cm2 = total_area_cm2 - area_cm2 - area2_cm2 + area_interseccion
 
             # Mostrar las coordenadas y el área en la terminal para el segundo rostro
-            #print(f"Rostro 2 - Coordenadas: (X1, Y1) = ({x3}, {y3}), (X2, Y2) = ({x4}, {y4})")
+            print(f"Rostro 2 - Coordenadas: (X1, Y1) = ({x3}, {y3}), (X2, Y2) = ({x4}, {y4})")
             print(f"Rostro 2 - Área: {area2_cm2:.2f} cm^2")
             print(f"Área de intersección: {area_interseccion:.2f} cm^2")
             print(f"Área final: {area_final_cm2:.2f} cm^2")

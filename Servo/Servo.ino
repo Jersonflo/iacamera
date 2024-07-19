@@ -1,4 +1,3 @@
-#include <Servo.h>
 #include <ESP32Servo.h>
 
 char dato;
@@ -23,11 +22,13 @@ void loop() {
     switch(dato) {
       case 'd': 
         angulo = angulo + 2;
+        if (angulo > 180) angulo = 180;  // Limitar ángulo máximo
         myServo.write(angulo);
         break;
 
       case 'i': 
         angulo = angulo - 2;
+        if (angulo < 0) angulo = 0;  // Limitar ángulo mínimo
         myServo.write(angulo);
         break;
 
