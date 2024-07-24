@@ -1,7 +1,21 @@
 import cv2
 import numpy as np
 from math import sqrt
+import serial
+import time
 
+
+# Configurar la conexión serie
+try:
+    ser = serial.Serial('/dev/tty.usbserial-0001', 9600)  # Reemplaza con el puerto correcto
+    d = 'd'
+    i = 'i'
+    p = 'p'
+
+    time.sleep(5)  # Esperar a que la conexión se establezca
+except serial.SerialException as e:
+    print(f"No se puede abrir el puerto serial: {e}")
+    exit()
 # Función para calcular el área de intersección de dos rectángulos
 def calcular_area_interseccion(x1, y1, x2, y2, x3, y3, x4, y4):
     inter_x1 = max(x1, x3)
@@ -71,11 +85,11 @@ while True:
         area_cm2 = width_cm * height_cm
 
         # Mostrar las coordenadas y el área en la terminal para el rostro seleccionado
-        print(f"Rostro seleccionado - Coordenadas: (X1, Y1) = ({x1}, {y1}), (X2, Y2) = ({x2}, {y2})")
-        print(f"Rostro seleccionado - Área: {area_cm2:.2f} cm^2")
+       # print(f"Rostro seleccionado - Coordenadas: (X1, Y1) = ({x1}, {y1}), (X2, Y2) = ({x2}, {y2})")
+       # print(f"Rostro seleccionado - Área: {area_cm2:.2f} cm^2")
 
         total_area_cm2 = (w * h) * (pixel_to_cm ** 2)
-        print(f"Área total de la ventana: {total_area_cm2:.2f} cm^2")
+        # print(f"Área total de la ventana: {total_area_cm2:.2f} cm^2")
 
         if len(faces) > 1:
             (x3, y3, x4, y4) = faces[1]
@@ -95,29 +109,34 @@ while True:
             area_final_cm2 = total_area_cm2 - area_cm2 - area2_cm2 + area_interseccion
 
             # Mostrar las coordenadas y el área en la terminal para el segundo rostro
-            print(f"Rostro 2 - Coordenadas: (X1, Y1) = ({x3}, {y3}), (X2, Y2) = ({x4}, {y4})")
-            print(f"Rostro 2 - Área: {area2_cm2:.2f} cm^2")
-            print(f"Área de intersección: {area_interseccion:.2f} cm^2")
-            print(f"Área final: {area_final_cm2:.2f} cm^2")
+            # print(f"Rostro 2 - Coordenadas: (X1, Y1) = ({x3}, {y3}), (X2, Y2) = ({x4}, {y4})")
+             #print(f"Rostro 2 - Área: {area2_cm2:.2f} cm^2")
+             #print(f"Área de intersección: {area_interseccion:.2f} cm^2")
+             #print(f"Área final: {area_final_cm2:.2f} cm^2")
         else:
             # Si solo hay un rostro, el área final es el área total de la ventana menos el área del rostro
             area_final_cm2 = total_area_cm2 - area_cm2
-            print(f"Área final: {area_final_cm2:.2f} cm^2")
+            # print(f"Área final: {area_final_cm2:.2f} cm^2")
 
         # Lógica para determinar movimiento
         if prev_cx is not None:
-            if cx < prev_cx - 10:
+            if cx < prev_cx - 50:
                 print("Izquierda")
-            elif cx > prev_cx + 10:
+                ser.write(i.encode('ascii'))  # Enviar comando 'i' para mover el servo a la izquierda
+            elif cx > prev_cx + 50:
                 print("Derecha")
+                ser.write(d.encode('ascii'))  # Enviar comando 'd' para mover el servo a la derecha
             else:
                 print("Parar")
+                ser.write(p.encode('ascii'))  # Enviar comando 'p' para parar el servo
         prev_cx = cx
 
     cv2.imshow("Camara", frame)
     t = cv2.waitKey(1)
     if t == 27:
-        break
+        break   
+
 
 cap.release()
 cv2.destroyAllWindows()
+ser.close()
