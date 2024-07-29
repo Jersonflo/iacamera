@@ -8,10 +8,6 @@ import time
 # Configurar la conexión serie
 try:
     ser = serial.Serial('/dev/tty.usbserial-0001', 9600)  # Reemplaza con el puerto correcto
-    d = 'd'
-    i = 'i'
-    p = 'p'
-
     time.sleep(5)  # Esperar a que la conexión se establezca
 except serial.SerialException as e:
     print(f"No se puede abrir el puerto serial: {e}")
@@ -122,13 +118,13 @@ while True:
         if prev_cx is not None:
             if cx < prev_cx - 50:
                 print("Izquierda")
-                ser.write(i.encode('ascii'))  # Enviar comando 'i' para mover el servo a la izquierda
+                ser.write(b'i')  # Enviar comando 'i' para mover el servo a la izquierda
             elif cx > prev_cx + 50:
                 print("Derecha")
-                ser.write(d.encode('ascii'))  # Enviar comando 'd' para mover el servo a la derecha
+                ser.write(b'd')  # Enviar comando 'd' para mover el servo a la derecha
             else:
                 print("Parar")
-                ser.write(p.encode('ascii'))  # Enviar comando 'p' para parar el servo
+                ser.write(b'p')  # Enviar comando 'p' para parar el servo
         prev_cx = cx
 
     cv2.imshow("Camara", frame)
