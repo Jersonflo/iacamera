@@ -67,7 +67,7 @@ while True:
         else:  # 'size'
             # Seleccionamos la cara más grande
             face = faces[0]
-
+ 
         (x1, y1, x2, y2) = face
         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
         cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
@@ -116,10 +116,10 @@ while True:
 
         # Lógica para determinar movimiento
         if prev_cx is not None:
-            if cx < prev_cx - 50:
+            if cx < prev_cx - 30:
                 print("Izquierda")
                 ser.write(b'i')  # Enviar comando 'i' para mover el servo a la izquierda
-            elif cx > prev_cx + 50:
+            elif cx > prev_cx + 30:
                 print("Derecha")
                 ser.write(b'd')  # Enviar comando 'd' para mover el servo a la derecha
             else:
