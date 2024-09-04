@@ -24,26 +24,28 @@ void loop() {
     delay(10);
     Serial.println(dato);
     switch(dato) {
-       velocidad = velocidad + 2;  // Incrementa la velocidad en una dirección
-        if (velocidad > 180) velocidad = 180;  // Velocidad máxima en una dirección
-        myServo.write(velocidad);
-        break;case 'd': 
+
+       case 'd': 
+        angulo = angulo + 6;
+        if (angulo > 180) angulo = 180;  // Limitar ángulo máximo
+        myServo.write(angulo);
+        break;
        
 
       case 'i': 
-        velocidad = velocidad - 2;  // Incrementa la velocidad en la dirección opuesta
+        velocidad = velocidad - 6;  // Incrementa la velocidad en la dirección opuesta
         if (velocidad < 0) velocidad = 0;  // Velocidad máxima en la otra dirección
         myServo.write(velocidad);
         break;
 
       case 'a': 
-        velocidad = velocidad + 2;  // Incrementa la velocidad en una dirección
+        velocidad = velocidad + 6;  // Incrementa la velocidad en una dirección
         if (velocidad > 180) velocidad = 180;
         myServo_1.write(velocidad);
         break;
 
       case 'b': 
-        velocidad = velocidad - 2;  // Incrementa la velocidad en la dirección opuesta
+        velocidad = velocidad - 6;  // Incrementa la velocidad en la dirección opuesta
         if (velocidad < 0) velocidad = 0;
         myServo_1.write(velocidad);
         break;
