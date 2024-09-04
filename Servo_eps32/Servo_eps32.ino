@@ -23,12 +23,13 @@ void loop() {
     dato = Serial.read();
     delay(10);
     Serial.println(dato);
+    
     switch(dato) {
 
        case 'd': 
-        angulo = angulo + 6;
-        if (angulo > 180) angulo = 180;  // Limitar ángulo máximo
-        myServo.write(angulo);
+        velocidad = velocidad + 6;
+        if (velocidad > 180) velocidad = 180;  // Limitar ángulo máximo
+        myServo.write(velocidad);
         break;
        
 
