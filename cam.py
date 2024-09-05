@@ -34,6 +34,7 @@ if not cap.isOpened():
     exit()
 
 prev_cx = None
+prev_cy = None
 
 # Criterio para seleccionar el rostro a seguir: 'size' o 'distance'
 selection_criteria = 'size'  # Cambiar a 'distance' para usar la distancia
@@ -70,7 +71,7 @@ while True:
  
         (x1, y1, x2, y2) = face
         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2   # Centro del rostro
         cv2.line(frame, (cx, 0), (cx, frame.shape[0]), (0, 0, 255), 2)
         cv2.circle(frame, (cx, cy), 5, (0, 0, 255), -1)  
 
@@ -114,7 +115,7 @@ while True:
             area_final_cm2 = total_area_cm2 - area_cm2
             # print(f"Área final: {area_final_cm2:.2f} cm^2")
 
-        # Lógica para determinar movimiento
+        # Lógica para determinar movimiento horizontal 
         if prev_cx is not None:
             if cx < prev_cx - 30:
                 print("Izquierda")
@@ -125,7 +126,22 @@ while True:
             else:
                 print("Parar")
                 ser.write(b'p')  # Enviar comando 'p' para parar el servo
+        
+         # Lógica para determinar movimiento vertical
+        if prev_cy is not None:
+            if cy < prev_cy - 30:
+                print("Arriba")
+                ser.write(b'a')  # Mover servo hacia arriba
+            elif cy > prev_cy + 30:
+                print("Abajo")
+                ser.write(b'b')  # Mover servo hacia abajo
+            else:
+                print("Parar vertical")
+                ser.write(b'p')  # Parar el servo vertical
+        
+        # Actualizar las posiciones previas
         prev_cx = cx
+        prev_cy = cy
 
     cv2.imshow("Camara", frame)
     t = cv2.waitKey(1)
