@@ -44,7 +44,10 @@ while True:
     if not ret:
         print("No se pudo capturar el frame de la cámara")
         break
-
+    
+    # Voltear la imagen horizontalmente (efecto espejo)
+    frame = cv2.flip(frame, 1)
+    
     # Convertimos a blob y realizamos la detección de rostros
     blob = cv2.dnn.blobFromImage(frame, 1.0, (300, 300), (104.0, 177.0, 123.0))
     net.setInput(blob)
@@ -123,9 +126,7 @@ while True:
             elif cx > prev_cx + 25:
                 print("Derecha")
                 ser.write(b'd')  # Enviar comando 'd' para mover el servo a la derecha
-            #else:
-             #   print("Parar")
-              #  ser.write(b'p')  # Enviar comando 'p' para parar el servo
+           
         
          # Lógica para determinar movimiento vertical
         if prev_cy is not None:
@@ -135,13 +136,31 @@ while True:
             elif cy > prev_cy + 25:
                 print("Abajo")
                 ser.write(b'b')  # Mover servo hacia abajo
-            #else:
-            #    print("Parar vertical")
-             #   ser.write(b'p')  # Parar el servo vertical
+
+            # Lógica para determinar movimiento diagonal
+        if prev_cx is not None and prev_cy is not None:
+            if cx < prev_cx - 25 and cy < prev_cy - 25:
+                print("Izquierda y Arriba")
+                ser.write(b'i')  
+                ser.write(b'a')  
+            elif cx > prev_cx + 25 and cy < prev_cy - 25:
+                print("Derecha y Arriba")
+                ser.write(b'd')  
+                ser.write(b'a')  
+            elif cx < prev_cx - 25 and cy > prev_cy + 25:
+                print("Izquierda y Abajo")
+                ser.write(b'i')  
+                ser.write(b'b') 
+            elif cx > prev_cx + 25 and cy > prev_cy + 25:
+                print("Derecha y Abajo")
+                ser.write(b'd') 
+                ser.write(b'b') 
+        
         
         # Actualizar las posiciones previas
         prev_cx = cx
         prev_cy = cy
+        
 
     cv2.imshow("Camara", frame)
     t = cv2.waitKey(1)
