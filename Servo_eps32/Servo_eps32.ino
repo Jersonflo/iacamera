@@ -1,7 +1,8 @@
 #include <ESP32Servo.h>
 //
 char dato;
-int velocidad = 90;  // 90 es la posición de parada para servos de rotación continua
+int velocidad_h = 90;  // Velocidad para el servo horizontal
+int velocidad_v = 90;  // Velocidad para el servo vertical
 
 #define servoPin 26  
 #define servoPin_1 27
@@ -26,37 +27,81 @@ void loop() {
     Serial.println(dato);
     
     switch(dato) {
-
-       case 'd': 
-        velocidad = velocidad + 8;
-        if (velocidad > 180) velocidad = 180;  // Limitar ángulo máximo
-        myServo.write(velocidad);
+      // Movimiento horizontal a la derecha
+      case 'd': 
+        velocidad_h = velocidad_h + 10;
+        if (velocidad_h > 180) velocidad_h = 180;  // Limitar ángulo máximo
+        myServo.write(velocidad_h);
         break;
        
-
+      // Movimiento horizontal a la izquierda
       case 'i': 
-        velocidad = velocidad - 8;  // Incrementa la velocidad en la dirección opuesta
-        if (velocidad < 0) velocidad = 0;  // Velocidad máxima en la otra dirección
-        myServo.write(velocidad);
+        velocidad_h = velocidad_h - 10;  // Incrementa la velocidad en la dirección opuesta
+        if (velocidad_h < 0) velocidad_h = 0;  // Limitar ángulo mínimo
+        myServo.write(velocidad_h);
         break;
     
+      // Movimiento vertical hacia arriba
       case 'a': 
-        velocidad = velocidad + 12;  // Incrementa la velocidad en una dirección
-        if (velocidad > 180) velocidad = 180;
-        myServo_1.write(velocidad);
+        velocidad_v = velocidad_v + 10;
+        if (velocidad_v > 180) velocidad_v = 180;  // Limitar ángulo máximo
+        myServo_1.write(velocidad_v);
         break;
 
+      // Movimiento vertical hacia abajo
       case 'b': 
-        velocidad = velocidad - 12;  // Incrementa la velocidad en la dirección opuesta
-        if (velocidad < 0) velocidad = 0;
-        myServo_1.write(velocidad);
+        velocidad_v = velocidad_v - 10;
+        if (velocidad_v < 0) velocidad_v = 0;  // Limitar ángulo mínimo
+        myServo_1.write(velocidad_v);
+        break;
+
+        // Movimiento diagonal izquierda-arriba
+      case '1':  // Nueva etiqueta para el caso 'i' + 'a'
+        velocidad_h = velocidad_h - 10;
+        velocidad_v = velocidad_v + 10;
+        if (velocidad_h < 0) velocidad_h = 0;
+        if (velocidad_v > 180) velocidad_v = 180;
+        myServo.write(velocidad_h);
+        myServo_1.write(velocidad_v);
+        break;
+
+      // Movimiento diagonal derecha-arriba
+      case '2':  // Nueva etiqueta para el caso 'd' + 'a'
+        velocidad_h = velocidad_h + 10;
+        velocidad_v = velocidad_v + 10;
+        if (velocidad_h > 180) velocidad_h = 180;
+        if (velocidad_v > 180) velocidad_v = 180;
+        myServo.write(velocidad_h);
+        myServo_1.write(velocidad_v);
+        break;
+
+      // Movimiento diagonal izquierda-abajo
+      case '3':  // Nueva etiqueta para el caso 'i' + 'b'
+        velocidad_h = velocidad_h - 10;
+        velocidad_v = velocidad_v - 10;
+        if (velocidad_h < 0) velocidad_h = 0;
+        if (velocidad_v < 0) velocidad_v = 0;
+        myServo.write(velocidad_h);
+        myServo_1.write(velocidad_v);
+        break;
+
+      // Movimiento diagonal derecha-abajo
+      case '4':  // Nueva etiqueta para el caso 'd' + 'b'
+        velocidad_h = velocidad_h + 10;
+        velocidad_v = velocidad_v - 10;
+        if (velocidad_h > 180) velocidad_h = 180;
+        if (velocidad_v < 0) velocidad_v = 0;
+        myServo.write(velocidad_h);
+        myServo_1.write(velocidad_v);
         break;
 
       case 'p': 
-        velocidad = 90;  // Detiene ambos servos
-        myServo.write(velocidad);
-        myServo_1.write(velocidad);
+        velocidad_h = 90;  // Detiene ambos servos
+        velocidad_v = 90;
+        myServo.write(velocidad_h);
+        myServo_1.write(velocidad_v);
         break;
+
     }
   }
 }
