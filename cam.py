@@ -117,27 +117,27 @@ while True:
 
         # Lógica para determinar movimiento horizontal 
         if prev_cx is not None:
-            if cx < prev_cx - 30:
+            if cx < prev_cx -25:
                 print("Izquierda")
                 ser.write(b'i')  # Enviar comando 'i' para mover el servo a la izquierda
-            elif cx > prev_cx + 30:
+            elif cx > prev_cx + 25:
                 print("Derecha")
                 ser.write(b'd')  # Enviar comando 'd' para mover el servo a la derecha
-            else:
-                print("Parar")
-                ser.write(b'p')  # Enviar comando 'p' para parar el servo
+            #else:
+             #   print("Parar")
+              #  ser.write(b'p')  # Enviar comando 'p' para parar el servo
         
          # Lógica para determinar movimiento vertical
         if prev_cy is not None:
-            if cy < prev_cy - 30:
+            if cy < prev_cy - 25:
                 print("Arriba")
                 ser.write(b'a')  # Mover servo hacia arriba
-            elif cy > prev_cy + 30:
+            elif cy > prev_cy + 25:
                 print("Abajo")
                 ser.write(b'b')  # Mover servo hacia abajo
-            else:
-                print("Parar vertical")
-                ser.write(b'p')  # Parar el servo vertical
+            #else:
+            #    print("Parar vertical")
+             #   ser.write(b'p')  # Parar el servo vertical
         
         # Actualizar las posiciones previas
         prev_cx = cx
@@ -146,6 +146,8 @@ while True:
     cv2.imshow("Camara", frame)
     t = cv2.waitKey(1)
     if t == 27:
+        print("Parar vertical")
+        ser.write(b'p')  # Parar el servo vertical
         break   
 
 
