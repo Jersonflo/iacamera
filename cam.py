@@ -47,7 +47,6 @@ while True:
     
     # Voltear la imagen horizontalmente (efecto espejo)
     frame = cv2.flip(frame, 1)
-    
     # Convertimos a blob y realizamos la detección de rostros
     blob = cv2.dnn.blobFromImage(frame, 1.0, (300, 300), (104.0, 177.0, 123.0))
     net.setInput(blob)
