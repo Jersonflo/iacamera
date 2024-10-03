@@ -64,7 +64,7 @@ while True:
             faces.append((x1, y1, x2, y2))
 
     if len(faces) > 0:
-        if selection_criteria == 'distance':
+        if selection_criteria == 'size':
             # Seleccionamos el rostro más cercano (asumiendo que el rostro más cercano está más cerca del centro vertical)
             face = min(faces, key=lambda rect: rect[1])
         else:  # 'size'
