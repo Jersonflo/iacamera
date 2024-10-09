@@ -38,7 +38,7 @@ prev_cy = None
 
 # Criterio para seleccionar el rostro a seguir: 'size' o 'distance'
 selection_criteria = 'size'  # Cambiar a 'distance' para usar la distancia
-
+ 
 while True:
     ret, frame = cap.read()
     if not ret:
@@ -65,17 +65,19 @@ while True:
 
     if len(faces) > 0:
         if selection_criteria == 'size':
-            # Seleccionamos el rostro más cercano (asumiendo que el rostro más cercano está más cerca del centro vertical)
-            face = min(faces, key=lambda rect: rect[1])
-        else:  # 'size'
-            # Seleccionamos la cara más grande
-            face = faces[0]
+        # Seleccionamos la cara más grande (mayor área)
+            face = max(faces, key=lambda rect: (rect[2]-rect[0]) * (rect[3]-rect[1]))
+        else:  # 'distance'
+        # Seleccionamos el rostro más cercano al centro vertical
+            face = min(faces, key=lambda rect: abs((rect[1]+rect[3])/2 - h/2))
+
  
         (x1, y1, x2, y2) = face
         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
         cx, cy = (x1 + x2) // 2, (y1 + y2) // 2   # Centro del rostro
         cv2.line(frame, (cx, 0), (cx, frame.shape[0]), (0, 0, 255), 2)
-        cv2.circle(frame, (cx, cy), 5, (0, 0, 255), -1)  
+        cv2.circle(frame, (cx, cy), 5, (0, 0, 255), -1)
+
 
         # Conversión de píxeles a centímetros (1 píxel = 0.0264583 cm)
         pixel_to_cm = 0.0264583
@@ -117,45 +119,55 @@ while True:
             area_final_cm2 = total_area_cm2 - area_cm2
             # print(f"Área final: {area_final_cm2:.2f} cm^2")
 
-        # Lógica para determinar movimiento horizontal 
-        if prev_cx is not None:
-            if cx < prev_cx -25:
-                print("Izquierda")
-                ser.write(b'i')  # Enviar comando 'i' para mover el servo a la izquierda
-            elif cx > prev_cx + 25:
-                print("Derecha")
-                ser.write(b'd')  # Enviar comando 'd' para mover el servo a la derecha
-           
-        
-         # Lógica para determinar movimiento vertical
-        if prev_cy is not None:
-            if cy < prev_cy - 25:
-                print("Arriba")
-                ser.write(b'a')  # Mover servo hacia arriba
-            elif cy > prev_cy + 25:
-                print("Abajo")
-                ser.write(b'b')  # Mover servo hacia abajo
 
-            # Lógica para determinar movimiento diagonal
+        # Umbrales para determinar si se debe mover
+        threshold_x = 30
+        threshold_y = 30
+
+         # Lógica para determinar movimiento horizontal
+        if prev_cx is not None:
+            delta_cx = cx - prev_cx
+            if abs(delta_cx) > threshold_x:
+                if delta_cx < 0:
+                    print("Izquierda")
+                    ser.write(b'i')  # Mover servo a la izquierda
+                else:
+                    print("Derecha")
+                    ser.write(b'd')  # Mover servo a la derecha
+
+        # Lógica para determinar movimiento vertical
+        if prev_cy is not None:
+            delta_cy = cy - prev_cy
+            if abs(delta_cy) > threshold_y:
+                if delta_cy < 0:
+                    print("Arriba")
+                    ser.write(b'a')  # Mover servo hacia arriba
+                else:
+                    print("Abajo")
+                    ser.write(b'b')  # Mover servo hacia abajo
+
+        # Lógica para determinar movimiento diagonal
         if prev_cx is not None and prev_cy is not None:
-            if cx < prev_cx - 25 and cy < prev_cy - 25: 
-                print("Izquierda y Arriba")
-                ser.write(b'i')  
-                ser.write(b'a')  
-            elif cx > prev_cx + 25 and cy < prev_cy - 25:
-                print("Derecha y Arriba")
-                ser.write(b'd')  
-                ser.write(b'a')  
-            elif cx < prev_cx - 25 and cy > prev_cy + 25:
-                print("Izquierda y Abajo")
-                ser.write(b'i')  
-                ser.write(b'b') 
-            elif cx > prev_cx + 25 and cy > prev_cy + 25:
-                print("Derecha y Abajo")
-                ser.write(b'd') 
-                ser.write(b'b') 
-        
-        
+            delta_cx = cx - prev_cx
+            delta_cy = cy - prev_cy
+            if abs(delta_cx) > threshold_x and abs(delta_cy) > threshold_y:
+                if delta_cx < 0 and delta_cy < 0:
+                    print("Izquierda y Arriba")
+                    ser.write(b'i')
+                    ser.write(b'a')
+                elif delta_cx > 0 and delta_cy < 0:
+                    print("Derecha y Arriba")
+                    ser.write(b'd')
+                    ser.write(b'a')
+                elif delta_cx < 0 and delta_cy > 0:
+                    print("Izquierda y Abajo")
+                    ser.write(b'i')
+                    ser.write(b'b')
+                elif delta_cx > 0 and delta_cy > 0:
+                    print("Derecha y Abajo")
+                    ser.write(b'd')
+                    ser.write(b'b')
+
         # Actualizar las posiciones previas
         prev_cx = cx
         prev_cy = cy
