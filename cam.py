@@ -119,59 +119,56 @@ while True:
             area_final_cm2 = total_area_cm2 - area_cm2
             # print(f"Área final: {area_final_cm2:.2f} cm^2")
 
+         # Centro del frame
+        frame_cx = w // 2   
+        frame_cy = h // 2
+
+        # Diferencia entre el centro del rostro y el centro del frame
+        diff_x = cx - frame_cx
+        diff_y = cy - frame_cy
 
         # Umbrales para determinar si se debe mover
-        threshold_x = 30
-        threshold_y = 30
+        threshold_x = 25
+        threshold_y = 25
 
-         # Lógica para determinar movimiento horizontal
-        if prev_cx is not None:
-            delta_cx = cx - prev_cx
-            if abs(delta_cx) > threshold_x:
-                if delta_cx < 0:
-                    print("Izquierda")
-                    ser.write(b'i')  # Mover servo a la izquierda
-                else:
-                    print("Derecha")
-                    ser.write(b'd')  # Mover servo a la derecha
+        # Lógica para movimiento horizontal
+        if abs(diff_x) > threshold_x:
+            if diff_x < 0:
+                print("Izquierda")
+                ser.write(b'i')  # Mover servo a la izquierda
+            else:
+                print("Derecha")
+                ser.write(b'd')  # Mover servo a la derecha
 
-        # Lógica para determinar movimiento vertical
-        if prev_cy is not None:
-            delta_cy = cy - prev_cy
-            if abs(delta_cy) > threshold_y:
-                if delta_cy < 0:
-                    print("Arriba")
-                    ser.write(b'a')  # Mover servo hacia arriba
-                else:
-                    print("Abajo")
-                    ser.write(b'b')  # Mover servo hacia abajo
+        # Lógica para movimiento vertical
+        if abs(diff_y) > threshold_y:
+            if diff_y < 0:
+                print("Arriba")
+                ser.write(b'b')  # Mover servo hacia arriba
+            else:
+                print("Abajo")
+                ser.write(b'a')  # Mover servo hacia abajo
 
-        # Lógica para determinar movimiento diagonal
-        if prev_cx is not None and prev_cy is not None:
-            delta_cx = cx - prev_cx
-            delta_cy = cy - prev_cy
-            if abs(delta_cx) > threshold_x and abs(delta_cy) > threshold_y:
-                if delta_cx < 0 and delta_cy < 0:
-                    print("Izquierda y Arriba")
-                    ser.write(b'i')
-                    ser.write(b'a')
-                elif delta_cx > 0 and delta_cy < 0:
-                    print("Derecha y Arriba")
-                    ser.write(b'd')
-                    ser.write(b'a')
-                elif delta_cx < 0 and delta_cy > 0:
-                    print("Izquierda y Abajo")
-                    ser.write(b'i')
-                    ser.write(b'b')
-                elif delta_cx > 0 and delta_cy > 0:
-                    print("Derecha y Abajo")
-                    ser.write(b'd')
-                    ser.write(b'b')
+        # Si necesitas manejar movimientos diagonales
+        if abs(diff_x) > threshold_x and abs(diff_y) > threshold_y:
+            if diff_x < 0 and diff_y < 0:
+                print("Izquierda y Arriba")
+                ser.write(b'i')
+                ser.write(b'a')
+            elif diff_x > 0 and diff_y < 0:
+                print("Derecha y Arriba")
+                ser.write(b'd')
+                ser.write(b'a')
+            elif diff_x < 0 and diff_y > 0:
+                print("Izquierda y Abajo")
+                ser.write(b'i')
+                ser.write(b'b')
+            elif diff_x > 0 and diff_y > 0:
+                print("Derecha y Abajo")
+                ser.write(b'd')
+                ser.write(b'b')
 
-        # Actualizar las posiciones previas
-        prev_cx = cx
-        prev_cy = cy
-        
+
 
     cv2.imshow("Camara", frame)
     t = cv2.waitKey(1)
