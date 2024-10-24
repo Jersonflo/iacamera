@@ -123,59 +123,53 @@ while True:
         frame_cx = w // 2   
         frame_cy = h // 2
 
+         # Definir el tamaño de la zona muerta (en píxeles)
+        dead_zone_width =  400  # Ancho de la zona muerta en píxeles 
+        dead_zone_height = 400  # Alto de la zona muerta en píxeles 
+
+        # Dibujar la zona muerta en el frame (opcional, para visualización)
+        top_left = (frame_cx - dead_zone_width // 2, frame_cy - dead_zone_height // 2)
+        bottom_right = (frame_cx + dead_zone_width // 2, frame_cy + dead_zone_height // 2)
+        cv2.rectangle(frame, top_left, bottom_right, (255, 0, 0), 2)
+
         # Diferencia entre el centro del rostro y el centro del frame
         diff_x = cx - frame_cx
         diff_y = cy - frame_cy
 
-        # Umbrales para determinar si se debe mover
-        threshold_x = 25
-        threshold_y = 25
-
         # Lógica para movimiento horizontal
-        if abs(diff_x) > threshold_x:
+        if abs(diff_x) > dead_zone_width // 2:
             if diff_x < 0:
                 print("Izquierda")
                 ser.write(b'i')  # Mover servo a la izquierda
+                time.sleep(0.15)  # Esperar 100 ms antes de enviar otro comando
             else:
                 print("Derecha")
                 ser.write(b'd')  # Mover servo a la derecha
+                time.sleep(0.15)  # Esperar 100 ms antes de enviar otro comando
+        else:
+            print("Centro horizontal - No mover servo horizontal")
 
         # Lógica para movimiento vertical
-        if abs(diff_y) > threshold_y:
+        if abs(diff_y) > dead_zone_height // 2:
             if diff_y < 0:
                 print("Arriba")
                 ser.write(b'b')  # Mover servo hacia arriba
+                time.sleep(0.15)  # Esperar 100 ms antes de enviar otro comando
             else:
                 print("Abajo")
                 ser.write(b'a')  # Mover servo hacia abajo
+                time.sleep(0.15)  # Esperar 100 ms antes de enviar otro comando
+        else:
+            print("Centro vertical - No mover servo vertical")
 
-        # Si necesitas manejar movimientos diagonales
-        if abs(diff_x) > threshold_x and abs(diff_y) > threshold_y:
-            if diff_x < 0 and diff_y < 0:
-                print("Izquierda y Arriba")
-                ser.write(b'i')
-                ser.write(b'a')
-            elif diff_x > 0 and diff_y < 0:
-                print("Derecha y Arriba")
-                ser.write(b'd')
-                ser.write(b'a')
-            elif diff_x < 0 and diff_y > 0:
-                print("Izquierda y Abajo")
-                ser.write(b'i')
-                ser.write(b'b')
-            elif diff_x > 0 and diff_y > 0:
-                print("Derecha y Abajo")
-                ser.write(b'd')
-                ser.write(b'b')
-
-
+ 
 
     cv2.imshow("Camara", frame)
     t = cv2.waitKey(1)
     if t == 27:
-        print("Parar vertical")
-        ser.write(b'p')  # Parar el servo vertical
-        break   
+        print("Parar servos")
+        ser.write(b'p')  # Parar los servos
+        break
 
 
 cap.release()
