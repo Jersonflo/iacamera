@@ -1,4 +1,7 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import QTimer
+from robot_control import RobotCameraController
 
 class CameraWindow(QWidget):
     def __init__(self, stacked_widget):
@@ -9,28 +12,40 @@ class CameraWindow(QWidget):
 
         # Layout principal
         layout_principal = QVBoxLayout()
-
-        # Placeholder para el cuadro de la cámara
-        self.camara_label = QLabel("Aquí se mostraría la cámara en el robot script")
+        self.camara_label = QLabel()
         layout_principal.addWidget(self.camara_label)
 
         # Botones de control
-        layout_botones = QHBoxLayout()
         regresar_boton = QPushButton("Regresar")
         regresar_boton.clicked.connect(self.regresar)
-        detener_boton = QPushButton("Detener Cámara")
-        detener_boton.clicked.connect(self.detener_robot_script)
-
-        layout_botones.addWidget(regresar_boton)
-        layout_botones.addWidget(detener_boton)
-        layout_principal.addLayout(layout_botones)
+        layout_principal.addWidget(regresar_boton)
         self.setLayout(layout_principal)
 
-    def detener_robot_script(self):
-        """Método para detener el script del robot enviando señal de cierre."""
-        # Aquí podríamos enviar un comando para detener, o terminar el proceso de `robot_control.py` si es necesario.
-        print("Deteniendo el script del robot (para implementar)")
+        # Instancia de RobotCameraController
+        self.robot_controller = RobotCameraController(serial_port='/dev/tty.usbserial-0001')
+
+        # Configuración del QTimer para actualizar la imagen cada 30 ms
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_image)
+
+    def iniciar_camara(self):
+        """Inicia la cámara y la actualización de imágenes."""
+        self.timer.start(30)
+
+    def detener_camara(self):
+        """Detiene la actualización de imágenes, envía el comando de detención y limpia el controlador."""
+        # Envía el comando 'p' para detener el movimiento del robot
+        self.robot_controller._enviar_comando(b'p')
+        self.timer.stop()
+        self.robot_controller.limpiar()
+
+    def update_image(self):
+        """Captura un nuevo cuadro y lo muestra en la etiqueta."""
+        qt_image = self.robot_controller.capturar_cuadro()
+        if qt_image:
+            self.camara_label.setPixmap(QPixmap.fromImage(qt_image))
 
     def regresar(self):
-        """Regresa a la ventana principal."""
+        """Regresa a la ventana principal y detiene la cámara."""
+        self.detener_camara()
         self.stacked_widget.setCurrentIndex(0)
