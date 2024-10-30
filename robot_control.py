@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import serial
 import time
+from PyQt5.QtGui import QImage
 
 class RobotCameraController:
     def __init__(self, serial_port, baud_rate=9600, dead_zone_width=300, dead_zone_height=300, selection_criteria='size'):
@@ -25,7 +26,6 @@ class RobotCameraController:
             exit()
 
     def _init_serial(self):
-        """Inicializa la conexión serial."""
         try:
             self.ser = serial.Serial(self.serial_port, self.baud_rate)
             time.sleep(5)
@@ -33,24 +33,12 @@ class RobotCameraController:
             print(f"No se puede abrir el puerto serial: {e}")
             self.ser = None
 
-    def calcular_area_interseccion(self, x1, y1, x2, y2, x3, y3, x4, y4):
-        """Calcula el área de intersección de dos rectángulos."""
-        inter_x1 = max(x1, x3)
-        inter_y1 = max(y1, y3)
-        inter_x2 = min(x2, x4)
-        inter_y2 = min(y2, y4)
-        if inter_x1 < inter_x2 and inter_y1 < inter_y2:
-            inter_width = inter_x2 - inter_x1
-            inter_height = inter_y2 - inter_y1
-            return inter_width * inter_height
-        return 0
-
-    def procesar_frame(self):
-        """Procesa cada frame, detecta rostros y controla el robot."""
+    def capturar_cuadro(self):
+        """Captura un cuadro, procesa la detección y envía comandos de movimiento."""
         ret, frame = self.cap.read()
         if not ret:
             print("No se pudo capturar el frame de la cámara")
-            return False
+            return None
 
         frame = cv2.flip(frame, 1)
         blob = cv2.dnn.blobFromImage(frame, 1.0, (300, 300), (104.0, 177.0, 123.0))
@@ -72,8 +60,12 @@ class RobotCameraController:
             self._dibujar_elementos(frame, face, faces, h, w)
             self._mover_robot(face, w, h)
 
-        cv2.imshow("Camara", frame)
-        return cv2.waitKey(1) != 27  # Continuar hasta que se presione Esc
+        # Convertir el frame a QImage para PyQt5
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        h, w, ch = rgb_frame.shape
+        bytes_per_line = ch * w
+        qt_image = QImage(rgb_frame.data, w, h, bytes_per_line, QImage.Format_RGB888)
+        return qt_image
 
     def _seleccionar_rostro(self, faces, h):
         """Selecciona el rostro a seguir basado en el criterio establecido."""
@@ -127,25 +119,9 @@ class RobotCameraController:
             self.ser.write(comando)
             time.sleep(0.15)
 
-    def ejecutar(self):
-        """Bucle principal para capturar y procesar cada frame."""
-        while True:
-            if not self.procesar_frame():
-                print("Parar servos")
-                self._enviar_comando(b'p')  # Parar los servos
-                break
-
-        self.limpiar()
-
     def limpiar(self):
-        """Libera recursos y cierra la aplicación."""
         self.cap.release()
         cv2.destroyAllWindows()
         if self.ser:
             self.ser.close()
         print("Recursos liberados.")
-
-# Ejecución del controlador
-if __name__ == "__main__":
-    controlador = RobotCameraController(serial_port='/dev/tty.usbserial-0001')
-    controlador.ejecutar()
