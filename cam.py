@@ -124,8 +124,8 @@ while True:
         frame_cy = h // 2
 
          # Definir el tamaño de la zona muerta (en píxeles)
-        dead_zone_width =  400  # Ancho de la zona muerta en píxeles 
-        dead_zone_height = 400  # Alto de la zona muerta en píxeles 
+        dead_zone_width =  300  # Ancho de la zona muerta en píxeles 
+        dead_zone_height = 300  # Alto de la zona muerta en píxeles 
 
         # Dibujar la zona muerta en el frame (opcional, para visualización)
         top_left = (frame_cx - dead_zone_width // 2, frame_cy - dead_zone_height // 2)
