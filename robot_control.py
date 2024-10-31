@@ -4,6 +4,7 @@ import serial
 import time
 from PyQt5.QtGui import QImage
 
+
 class RobotCameraController:
     def __init__(self, serial_port, baud_rate=9600, dead_zone_width=300, dead_zone_height=300, selection_criteria='size'):
         self.serial_port = serial_port
