@@ -124,6 +124,12 @@ class MainWindow(QWidget):
             "- ?: Abre esta ventana de ayuda."
         )
         QMessageBox.information(self, "Ayuda", mensaje_ayuda)
+        
+    def keyPressEvent(self, event):
+        """Cierra la ventana y la cámara al presionar la tecla Esc."""
+        if event.key() == Qt.Key_Escape:
+            self.detener_camara()
+            self.close()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

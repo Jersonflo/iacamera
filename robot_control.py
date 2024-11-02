@@ -83,9 +83,18 @@ class RobotCameraController:
         cv2.line(frame, (cx, 0), (cx, frame.shape[0]), (0, 0, 255), 2)
         cv2.circle(frame, (cx, cy), 5, (0, 0, 255), -1)
 
+        # Calcula el tamaño del rectángulo azul en función del rectángulo del rostro detectado
+        face_width = x2 - x1
+        face_height = y2 - y1
+        dead_zone_width = min(self.dead_zone_width, face_width * 2)
+        dead_zone_height = min(self.dead_zone_height, face_height * 2)
+    
+        # Define las esquinas del rectángulo azul
         frame_cx, frame_cy = w // 2, h // 2
-        top_left = (frame_cx - self.dead_zone_width // 2, frame_cy - self.dead_zone_height // 2)
-        bottom_right = (frame_cx + self.dead_zone_width // 2, frame_cy + self.dead_zone_height // 2)
+        top_left = (frame_cx - dead_zone_width // 2, frame_cy - dead_zone_height // 2)
+        bottom_right = (frame_cx + dead_zone_width // 2, frame_cy + dead_zone_height // 2)
+
+        # Dibuja el rectángulo azul de la zona muerta
         cv2.rectangle(frame, top_left, bottom_right, (255, 0, 0), 2)
 
     def _mover_robot(self, face, w, h):
