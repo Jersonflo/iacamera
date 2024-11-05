@@ -19,6 +19,9 @@ class MainWindow(QWidget):
         # Layout principal
         layout_principal = QHBoxLayout()
 
+         # espaciador en el lado izquierdo
+        layout_principal.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Fixed, QSizePolicy.Minimum))  
+
          # Fondo de imagen como QLabel
         fondo = QLabel(self)
         fondo.setPixmap(QPixmap("images/fondo.png").scaled(self.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation))
@@ -40,35 +43,46 @@ class MainWindow(QWidget):
         # Área de visualización de la cámara
         self.camara_label = QLabel()
         self.camara_label.setFixedSize(895, 504)
-        self.camara_label.setStyleSheet("background-color: #aafff7; border-radius: 20px")  
+        self.camara_label.setStyleSheet("background-color: #dcfffe; border-radius: 20px")  
         layout_izquierdo.addWidget(self.camara_label)
         layout_principal.addLayout(layout_izquierdo)
+
+        # Espaciador superior para centrar los botones
+        layout_izquierdo.addSpacerItem(QSpacerItem(40, 60, QSizePolicy.Minimum))
 
         # Layout derecho (botones)
         layout_derecho = QVBoxLayout()
 
         # Espaciador superior para centrar los botones
-        layout_derecho.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding))
+        layout_derecho.addSpacerItem(QSpacerItem(20, 120, QSizePolicy.Minimum, QSizePolicy.Expanding))
 
         # Botón de Iniciar
-        self.iniciar_boton = QPushButton("Iniciar")
+        self.iniciar_boton = QPushButton()
+        self.iniciar_boton.setFixedSize(200,160)
+        self.iniciar_boton.setIcon(QIcon("images/btniniciar.png"))
+        self.iniciar_boton.setIconSize(self.iniciar_boton.size())
         self.iniciar_boton.clicked.connect(self.iniciar_camara)
-        self.iniciar_boton.setStyleSheet("background-color: rgba(255, 255, 255, 0.8);")
+        self.iniciar_boton.setStyleSheet("background-color: transparent; border: none;")
         layout_derecho.addWidget(self.iniciar_boton)
 
         # Botón de Detener
-        self.detener_boton = QPushButton("Detener")
+        self.detener_boton = QPushButton()  
+        self.detener_boton.setFixedSize(200, 160)
+        self.detener_boton.setIcon(QIcon("images/btnDetener.png"))
+        self.detener_boton.setIconSize(self.detener_boton.size())
         self.detener_boton.clicked.connect(self.detener_camara)
-        self.detener_boton.setStyleSheet("background-color: rgba(255, 255, 255, 0.8);")
+        self.detener_boton.setStyleSheet("background-color: transparent; border: none;")
         layout_derecho.addWidget(self.detener_boton)
 
         # Botón de Conócenos
-        self.conocenos_boton = QPushButton("Conócenos")
+        self.conocenos_boton = QPushButton()
+        self.conocenos_boton.setFixedSize(200, 160)
+        self.conocenos_boton.setIcon(QIcon("images/btnConocenos.png"))
+        self.conocenos_boton.setIconSize(self.conocenos_boton.size())
         self.conocenos_boton.clicked.connect(self.mostrar_mensaje_conocenos)
+        self.conocenos_boton.setStyleSheet("background-color: transparent; border: none;")
         layout_derecho.addWidget(self.conocenos_boton)
 
-        # Espaciador inferior para centrar los botones
-        layout_derecho.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding))
 
        # Configuración del botón de Ayuda (en la esquina inferior derecha con icono de imagen)
         self.ayuda_boton = QPushButton()
