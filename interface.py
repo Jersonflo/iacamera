@@ -4,14 +4,18 @@ from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QMessageBox, QSpacerItem, QSizePolicy
 from PyQt5.QtGui import QImage, QPixmap, QPainter, QBrush, QColor, QIcon
 from robot_control import RobotCameraController
-
+from Gemini import ChatBotApp 
+from voice import SpeechRecognizer
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Ventana Principal")
         self.setGeometry(100, 100, 1200, 800)
 
-
+        # Inicializa ChatBotApp
+        self.chatbot_app = ChatBotApp() 
+        self.voice_app = SpeechRecognizer()
+        
         # Inicialización del motor de texto a voz
         self.engine = pyttsx3.init()
         self.reproducir_mensaje_inicial("""Bienvenido al sistema de control y seguimiento visual del robot.""")
@@ -171,3 +175,15 @@ class MainWindow(QWidget):
         if event.key() == Qt.Key_Escape:
             self.detener_camara()
             self.close()
+
+    def cuest_chatbot(self,pregunta):
+        respuesta = self.chatbot_app.get_response(pregunta)  
+        #print(f"Respuesta del chatbot: {respuesta}")
+        return respuesta
+    
+    def voz_cuestoion(self):
+        audio = self.voice_app.escuchar()
+        text = self.voice_app.reconocer(audio) 
+        #print(f"Respuesta del chatbot: {text}")
+        return text
+    
