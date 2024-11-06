@@ -6,6 +6,8 @@ from PyQt5.QtGui import QImage, QPixmap, QPainter, QBrush, QColor, QIcon
 from robot_control import RobotCameraController
 from Gemini import ChatBotApp 
 from voice import SpeechRecognizer
+import threading
+
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -15,6 +17,10 @@ class MainWindow(QWidget):
         # Inicializa ChatBotApp
         self.chatbot_app = ChatBotApp() 
         self.voice_app = SpeechRecognizer()
+        
+        
+        # Iniciar escucha continua en un hilo separado
+        self.iniciar_escucha_continua()
         
         # Inicialización del motor de texto a voz
         self.engine = pyttsx3.init()
@@ -175,15 +181,20 @@ class MainWindow(QWidget):
         if event.key() == Qt.Key_Escape:
             self.detener_camara()
             self.close()
-
-    def cuest_chatbot(self,pregunta):
-        respuesta = self.chatbot_app.get_response(pregunta)  
-        #print(f"Respuesta del chatbot: {respuesta}")
-        return respuesta
-    
-    def voz_cuestoion(self):
+            
+    def iniciar_escucha_continua(self):
+        """Inicia la escucha continua en un hilo separado."""
+        hilo_escucha = threading.Thread(target=self.voice_app.escuchar_continuamente, args=(self.activar_chatbot,))
+        hilo_escucha.daemon = True
+        hilo_escucha.start()
+        
+    def activar_chatbot(self):
+        """Captura la pregunta y la envía al chatbot cuando se detecta la palabra clave."""
         audio = self.voice_app.escuchar()
-        text = self.voice_app.reconocer(audio) 
-        #print(f"Respuesta del chatbot: {text}")
-        return text
+        pregunta = self.voice_app.reconocer(audio)
+        if pregunta:
+            respuesta = self.cuest_chatbot(pregunta)
+            print(f"Respuesta del chatbot: {respuesta}")
+            # Puedes agregar aquí la lógica para reproducir la respuesta en voz.
+    
     
