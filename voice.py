@@ -9,7 +9,8 @@ class SpeechRecognizer:
         self.reconocedor = sr.Recognizer()
         self.language = language
         self.keyword = keyword.lower()
-        self.escuchando = False
+        self.escuchando = True
+        self.q = queue.Queue()  # Cola para almacenar las preguntas detectadas
 
     def ajustar_ruido_ambiental(self, source):
         """Ajusta el ruido ambiental para mejorar el reconocimiento."""
@@ -48,19 +49,3 @@ class SpeechRecognizer:
     def detener_escucha(self):
         """Detiene la escucha continua."""
         self.escuchando = False
-
-    def on_keyword_detected(self, pregunta_texto):
-        """Función que se ejecuta cuando se detecta la palabra clave y captura la pregunta."""
-        print("Reconocimiento de voz activado. Pregunta recibida:")
-        print(pregunta_texto)
-
-# Instancia del reconocedor de voz
-#speech_recognizer = SpeechRecognizer()
-
-# Iniciar el hilo para escuchar continuamente
-#hilo_escucha = threading.Thread(target=speech_recognizer.escuchar_continuamente)
-#hilo_escucha.start()
-
-# Detener la escucha tras una entrada del usuario (para pruebas)
-#input("Presiona Enter para detener la escucha...\n")
-#speech_recognizer.detener_escucha()
