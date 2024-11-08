@@ -3,4 +3,6 @@ opencv-python-headless==4.10.0.84
 pyserial==3.5
 pyttsx3
 pyqt5
+google-generativeai
+streamlit
 
