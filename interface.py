@@ -7,6 +7,7 @@ from robot_control import RobotCameraController
 from Gemini import ChatBotApp 
 from voice import SpeechRecognizer
 import threading
+import queue
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -14,25 +15,24 @@ class MainWindow(QWidget):
         self.setWindowTitle("Ventana Principal")
         self.setGeometry(100, 100, 1200, 800)
 
-        # Inicializa ChatBotApp
-        self.chatbot_app = ChatBotApp() 
-        self.voice_app = SpeechRecognizer()
-        
-        
-        # Iniciar escucha continua en un hilo separado
-        self.iniciar_escucha_continua()
-        
         # Inicialización del motor de texto a voz
         self.engine = pyttsx3.init()
         self.reproducir_mensaje_inicial("""Bienvenido al sistema de control y seguimiento visual del robot.""")
 
+        # Inicializa ChatBotApp y SpeechRecognizer
+        self.chatbot_app = ChatBotApp() 
+        self.voice_app = SpeechRecognizer()
+
+        # Cola para pasar las preguntas entre hilos
+        self.q = queue.Queue()
+
         # Layout principal
         layout_principal = QHBoxLayout()
 
-         # espaciador en el lado izquierdo
+        # Espaciador en el lado izquierdo
         layout_principal.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Fixed, QSizePolicy.Minimum))  
 
-         # Fondo de imagen como QLabel
+        # Fondo de imagen como QLabel
         fondo = QLabel(self)
         fondo.setPixmap(QPixmap("images/fondo.png").scaled(self.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation))
         fondo.setGeometry(self.rect())
@@ -42,7 +42,7 @@ class MainWindow(QWidget):
         # Layout izquierdo (logo y área de cámara)
         layout_izquierdo = QVBoxLayout()
 
-         # Configuración del logo
+        # Configuración del logo
         self.logo = QLabel()
         pixmap_logo = QPixmap("images/logo.png").scaled(600, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.logo.setPixmap(pixmap_logo)
@@ -93,8 +93,7 @@ class MainWindow(QWidget):
         self.conocenos_boton.setStyleSheet("background-color: transparent; border: none;")
         layout_derecho.addWidget(self.conocenos_boton)
 
-
-       # Configuración del botón de Ayuda (en la esquina inferior derecha con icono de imagen)
+        # Configuración del botón de Ayuda (en la esquina inferior derecha con icono de imagen)
         self.ayuda_boton = QPushButton()
         self.ayuda_boton.setFixedSize(50, 50)  # Tamaño del botón
         self.ayuda_boton.setStyleSheet("border-radius: 20px; background-color: transparent;")  
@@ -124,6 +123,8 @@ class MainWindow(QWidget):
         if not self.robot_controller:
             # Re-inicializa el controlador de la cámara y del robot
             self.robot_controller = RobotCameraController(serial_port='/dev/tty.usbserial-0001')
+        # Inicia la escucha continua de audio
+        self.iniciar_escucha_continua()
         self.timer.start(30)  # Inicia el temporizador para actualizar la imagen
 
     def detener_camara(self):
@@ -175,26 +176,37 @@ class MainWindow(QWidget):
             "- ?: Abre esta ventana de ayuda."
         )
         QMessageBox.information(self, "Ayuda", mensaje_ayuda)
+
+    def iniciar_escucha_continua(self):
+        """Inicia la escucha continua de voz en un hilo separado."""
+        def escuchar_y_enviar():
+            while True:
+                pregunta = self.voice_app.escuchar_continuamente()
+                if pregunta:
+                    self.q.put(pregunta)  # Coloca la pregunta en la cola
+
+        threading.Thread(target=escuchar_y_enviar, daemon=True).start()
+
+        # Crear un temporizador para verificar y procesar la pregunta en la cola cada 0.5 segundos
+        self.timer_pregunta = QTimer(self)
+        self.timer_pregunta.timeout.connect(self.procesar_pregunta)
+        self.timer_pregunta.start(500)
+
+    def procesar_pregunta(self):
+        """Procesa la pregunta de la cola y la pasa al chatbot para obtener una respuesta."""
+        if not self.q.empty():
+            pregunta = self.q.get_nowait()
+            if pregunta:
+                respuesta = self.chatbot_app.enviar_mensaje(pregunta)
+                self.reproducir_respuesta(respuesta)
+
+    def reproducir_respuesta(self, respuesta):
+        """Reproduce la respuesta del chatbot mediante voz."""
+        self.engine.say(respuesta)
+        self.engine.runAndWait()
         
     def keyPressEvent(self, event):
         """Cierra la ventana y la cámara al presionar la tecla Esc."""
         if event.key() == Qt.Key_Escape:
             self.detener_camara()
             self.close()
-            
-    def iniciar_escucha_continua(self):
-        """Inicia la escucha continua en un hilo separado."""
-        hilo_escucha = threading.Thread(target=self.voice_app.escuchar_continuamente, args=(self.activar_chatbot,))
-        hilo_escucha.daemon = True
-        hilo_escucha.start()
-        
-    def activar_chatbot(self):
-        """Captura la pregunta y la envía al chatbot cuando se detecta la palabra clave."""
-        audio = self.voice_app.escuchar()
-        pregunta = self.voice_app.reconocer(audio)
-        if pregunta:
-            respuesta = self.cuest_chatbot(pregunta)
-            print(f"Respuesta del chatbot: {respuesta}")
-            # Puedes agregar aquí la lógica para reproducir la respuesta en voz.
-    
-    
