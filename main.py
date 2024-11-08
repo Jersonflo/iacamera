@@ -8,3 +8,6 @@ if __name__ == "__main__":
     ventana = MainWindow()
     ventana.show()
     sys.exit(app.exec_())
+
+
+
