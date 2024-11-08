@@ -183,6 +183,7 @@ class MainWindow(QWidget):
             while True:
                 pregunta = self.voice_app.escuchar_continuamente()
                 if pregunta:
+                    print(f"Pregunta detectada: {pregunta}")
                     self.q.put(pregunta)  # Coloca la pregunta en la cola
 
         threading.Thread(target=escuchar_y_enviar, daemon=True).start()
@@ -198,6 +199,7 @@ class MainWindow(QWidget):
             pregunta = self.q.get_nowait()
             if pregunta:
                 respuesta = self.chatbot_app.enviar_mensaje(pregunta)
+                print(f"Respuesta del ChatBot: {respuesta}")
                 self.reproducir_respuesta(respuesta)
 
     def reproducir_respuesta(self, respuesta):
