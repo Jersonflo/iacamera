@@ -36,9 +36,10 @@ class SpeechRecognizer:
                         # Escucha otra vez para capturar la pregunta completa
                         pregunta_audio = self.reconocedor.listen(source, timeout=5)
                         pregunta_texto = self.reconocedor.recognize_google(pregunta_audio, language=self.language).lower()
-                        print(f"Pregunta capturada: {pregunta_texto}")
-                    
-                        self.q.put(pregunta_texto)  # Coloca la pregunta en la cola
+                        #print(f"Pregunta capturada: {pregunta_texto}")
+                        return pregunta_texto
+                        # enviamos la pregunta en la cola
+                        self.q.put(pregunta_texto)  
                 except sr.UnknownValueError:
                     pass
                 except sr.RequestError:
