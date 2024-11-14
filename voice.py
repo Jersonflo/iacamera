@@ -1,17 +1,20 @@
 import speech_recognition as sr
+from Gemini import ChatBotApp
 import threading
+import pyttsx3 
 import queue
 
 
 class SpeechRecognizer:
-    def __init__(self, language="es-ES", keyword="juan"):
-        # Inicializa el reconocedor y establece el idioma y la palabra clave
+    def __init__(self, language="es-ES", keyword="iniciar", q=None):
         self.reconocedor = sr.Recognizer()
         self.language = language
         self.keyword = keyword.lower()
         self.escuchando = True
-        self.q = queue.Queue()  # Cola para almacenar las preguntas detectadas
-
+        self.q = q if q is not None else queue.Queue()  # Usa la cola externa si se proporciona
+        self.chatbot_app = ChatBotApp() 
+        self.engine = pyttsx3.init()
+        
     def ajustar_ruido_ambiental(self, source):
         """Ajusta el ruido ambiental para mejorar el reconocimiento."""
         self.reconocedor.adjust_for_ambient_noise(source)
@@ -32,20 +35,36 @@ class SpeechRecognizer:
                     # Activar solo si se dice la palabra clave exacta
                     if texto.strip() == self.keyword:
                         print(f"Palabra clave '{self.keyword}' detectada. Haz tu pregunta.")
-                    
+                        
                         # Escucha otra vez para capturar la pregunta completa
                         pregunta_audio = self.reconocedor.listen(source, timeout=5)
                         pregunta_texto = self.reconocedor.recognize_google(pregunta_audio, language=self.language).lower()
-                        #print(f"Pregunta capturada: {pregunta_texto}")
-                        return pregunta_texto
-                        # enviamos la pregunta en la cola
-                        self.q.put(pregunta_texto)  
+                        
+                        respuesta = self.chatbot_app.enviar_mensaje(pregunta_texto)
+                        print(f"Respuesta del ChatBot: {respuesta}")
+                        self.reproducir_respuesta(respuesta)
+                        
                 except sr.UnknownValueError:
                     pass
                 except sr.RequestError:
                     print("Error con el servicio de reconocimiento de voz.")
                     break
+                
+    def procesar_pregunta(self):
+        """Procesa la pregunta de la cola y la pasa al chatbot para obtener una respuesta."""
+        if not self.q.empty():
+            pregunta = self.q.get_nowait()
+            print(f"Pregunta capturada: {pregunta}")
+            if pregunta:
+                respuesta = self.chatbot_app.enviar_mensaje(pregunta)
+                print(f"Respuesta del ChatBot: {respuesta}")
+                self.reproducir_respuesta(respuesta)
 
+
+    def reproducir_respuesta(self, respuesta):
+        """Reproduce la respuesta del chatbot mediante voz."""
+        self.engine.say(respuesta)
+        self.engine.runAndWait()
 
     def detener_escucha(self):
         """Detiene la escucha continua."""
