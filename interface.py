@@ -19,13 +19,12 @@ class MainWindow(QWidget):
         self.engine = pyttsx3.init()
         self.reproducir_mensaje_inicial("""Bienvenido al sistema de control y seguimiento visual del robot.""")
 
+        # Cola para pasar las preguntas entre hilos
+        self.q = queue.Queue()
         # Inicializa ChatBotApp y SpeechRecognizer
         self.chatbot_app = ChatBotApp() 
         self.voice_app = SpeechRecognizer()
-
-        # Cola para pasar las preguntas entre hilos
-        self.q = queue.Queue()
-
+        
         # Layout principal
         layout_principal = QHBoxLayout()
 
@@ -181,32 +180,11 @@ class MainWindow(QWidget):
         """Inicia la escucha continua de voz en un hilo separado."""
         def escuchar_y_enviar():
             while True:
-                pregunta = self.voice_app.escuchar_continuamente()
-                if pregunta:
-                    print(f"Pregunta detectada: {pregunta}")
-                    self.q.put(pregunta)  # Coloca la pregunta en la cola
+                
+                self.voice_app.escuchar_continuamente()
 
         threading.Thread(target=escuchar_y_enviar, daemon=True).start()
 
-        # Crear un temporizador para verificar y procesar la pregunta en la cola cada 0.5 segundos
-        self.timer_pregunta = QTimer(self)
-        self.timer_pregunta.timeout.connect(self.procesar_pregunta)
-        self.timer_pregunta.start(500)
-
-    def procesar_pregunta(self):
-        """Procesa la pregunta de la cola y la pasa al chatbot para obtener una respuesta."""
-        if not self.q.empty():
-            pregunta = self.q.get_nowait()
-            if pregunta:
-                respuesta = self.chatbot_app.enviar_mensaje(pregunta)
-                print(f"Respuesta del ChatBot: {respuesta}")
-                self.reproducir_respuesta(respuesta)
-
-    def reproducir_respuesta(self, respuesta):
-        """Reproduce la respuesta del chatbot mediante voz."""
-        self.engine.say(respuesta)
-        self.engine.runAndWait()
-        
     def keyPressEvent(self, event):
         """Cierra la ventana y la cámara al presionar la tecla Esc."""
         if event.key() == Qt.Key_Escape:
