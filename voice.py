@@ -28,7 +28,7 @@ class SpeechRecognizer:
             while self.escuchando:
                 try:
                     # Escucha continuamente pero analiza solo si la palabra clave fue detectada
-                    audio = self.reconocedor.listen(source, timeout=8)
+                    audio = self.reconocedor.listen(source, timeout=100)
                     texto = self.reconocedor.recognize_google(audio, language=self.language).lower()
                     print(f"Escuchado: {texto}")
                 
