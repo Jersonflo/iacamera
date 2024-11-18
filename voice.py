@@ -20,7 +20,7 @@ class SpeechRecognizer:
 
     def escuchar_continuamente(self):
         """Escucha continuamente y coloca la pregunta capturada en la cola cuando se detecta la palabra clave."""
-        with sr.Microphone() as source:
+        with sr.Microphone(device_index=0) as source:
             print("Esperando la palabra clave...")
             self.ajustar_ruido_ambiental(source)
 
