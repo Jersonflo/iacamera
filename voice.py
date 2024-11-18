@@ -35,6 +35,8 @@ class SpeechRecognizer:
                     if texto.strip() == self.keyword:
                         print(f"Palabra clave '{self.keyword}' detectada. Haz tu pregunta.")
                         
+                        mensaje_saludo = "Hola, cómo estás, soy Bot, la mascota de Ecosystem, ¿en qué puedo ayudarte?"
+                        self.reproducir_respuesta(mensaje_saludo)
                         # Escucha otra vez para capturar la pregunta completa
                         pregunta_audio = self.reconocedor.listen(source, timeout=5)
                         pregunta_texto = self.reconocedor.recognize_google(pregunta_audio, language=self.language).lower()
