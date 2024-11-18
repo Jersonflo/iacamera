@@ -1,6 +1,5 @@
 import speech_recognition as sr
 from Gemini import ChatBotApp
-import threading
 import pyttsx3 
 import queue
 
