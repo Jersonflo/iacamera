@@ -1,0 +1,4 @@
+Persona,Pregunta,Respuesta
+Persona 1,ya decían en colombia,Ocurrió un error: The model `gpt-4` does not exist or you do not have access to it.
+Persona 1,juanes tiene colombia,Ocurrió un error: The model `gpt-4` does not exist or you do not have access to it.
+Persona 1,las ciudades tiene colombia,Ocurrió un error: 'ChatBotApp' object has no attribute 'model'
