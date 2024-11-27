@@ -74,7 +74,7 @@ class SpeechRecognizer:
                                 print(f"Pregunta escuchada: {pregunta_texto}")
 
                                 # Detectar cierre de conversación
-                                if pregunta_texto.strip() == "terminar":
+                                if pregunta_texto.strip() == "gracias":
                                     self.reproducir_respuesta("Gracias por hablar conmigo. ¡Adiós!")
                                     print("Conversación terminada.")
                                     break
