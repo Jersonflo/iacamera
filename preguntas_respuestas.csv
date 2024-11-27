@@ -1,4 +1,3 @@
-Persona,Pregunta,Respuesta
-Persona 1,ya decían en colombia,Ocurrió un error: The model `gpt-4` does not exist or you do not have access to it.
-Persona 1,juanes tiene colombia,Ocurrió un error: The model `gpt-4` does not exist or you do not have access to it.
-Persona 1,las ciudades tiene colombia,Ocurrió un error: 'ChatBotApp' object has no attribute 'model'
+
+Persona 1,ciudades tiene colombia,"Colombia tiene 1.102 municipios.  Sin embargo, la cantidad de ""ciudades"" es subjetiva y depende de la definición que se utilice.  Muchos municipios son pequeños y no se consideran ciudades en el sentido común del término.  Colombia tiene varias ciudades grandes y metropolitanas, pero no hay un número exacto de ""ciudades"" establecido oficialmente.
+"
