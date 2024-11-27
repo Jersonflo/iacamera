@@ -1,0 +1,20 @@
+[
+    {
+        "Persona": "Persona 1",
+        "Pregunta": "cómo estás",
+        "Respuesta": "¡Estoy bien, gracias por preguntar! ¿Cómo estás tú?\n",
+        "Frecuencia": 138.33451704545453
+    },
+    {
+        "Persona": "Persona 2",
+        "Pregunta": "cuál es la capital de rusia",
+        "Respuesta": "La capital de Rusia es **Moscú**.\n",
+        "Frecuencia": 145.40242110148515
+    },
+    {
+        "Persona": "Persona 2",
+        "Pregunta": "muchas gracias",
+        "Respuesta": "De nada!\n",
+        "Frecuencia": 132.97697368421052
+    }
+]
