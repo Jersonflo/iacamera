@@ -16,5 +16,47 @@
         "Pregunta": "muchas gracias",
         "Respuesta": "De nada!\n",
         "Frecuencia": 132.97697368421052
+    },
+    {
+        "Persona": "Persona 1",
+        "Pregunta": "dónde queda rusia",
+        "Respuesta": "Rusia se encuentra en el norte de Eurasia.  Es el país más grande del mundo, abarcando una vasta extensión de territorio que se extiende a través de Europa del Este y el norte de Asia.\n",
+        "Frecuencia": 606.896330180921
+    },
+    {
+        "Persona": "Persona 1",
+        "Pregunta": "cómo estás",
+        "Respuesta": "¡Estoy bien, gracias por preguntar! ¿Cómo estás tú?\n",
+        "Frecuencia": 580.7018649193548
+    },
+    {
+        "Persona": "Persona 1",
+        "Pregunta": "está configurado pues sí hijo solo detecta una cara",
+        "Respuesta": "Esa frase, \"está configurado pues sí hijo solo detecta una cara\", sugiere que un dispositivo, probablemente una cámara o un software de reconocimiento facial, está configurado para detectar solo una cara a la vez.  El \"hijo\" indica que la persona que habla se dirige a alguien más joven.  No hay nada intrínsicamente incorrecto en la frase, pero podría ser más claro dependiendo del contexto.\n",
+        "Frecuencia": 559.6279456967213
+    },
+    {
+        "Persona": "Persona 1",
+        "Pregunta": "este mensaje que esto se debe",
+        "Respuesta": "Lo siento, pero no entiendo tu pregunta.  \"¿Este mensaje que esto se debe?\" no es una oración completa o una pregunta clara.  Por favor, reformula tu pregunta para que pueda ayudarte.  Necesito más contexto o información para entender a qué te refieres.\n",
+        "Frecuencia": 277.7783203125
+    },
+    {
+        "Persona": "Persona 1",
+        "Pregunta": "cómo estás",
+        "Respuesta": "¡Estoy bien, gracias por preguntar!  ¿Cómo estás tú?\n",
+        "Frecuencia": 556.787109375
+    },
+    {
+        "Persona": "Persona 1",
+        "Pregunta": "cómo estás",
+        "Respuesta": "¡Estoy bien, gracias! ¿Y tú?\n",
+        "Frecuencia": 129.8233695652174
+    },
+    {
+        "Persona": "Persona 1",
+        "Pregunta": "cómo estás",
+        "Respuesta": "¡Estoy bien, gracias! ¿Y tú?\n",
+        "Frecuencia": 132.6171875
     }
 ]
