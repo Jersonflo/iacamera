@@ -2,6 +2,7 @@ import speech_recognition as sr
 from Gemini import ChatBotApp
 import matplotlib.pyplot as plt
 import pyttsx3
+from multiprocessing import Queue
 import queue
 import json
 import numpy as np
@@ -9,8 +10,9 @@ import wave
 import io
 
 
+
 class SpeechRecognizer:
-    def __init__(self, language="es-ES", keyword="iniciar", q=None):
+    def __init__(self, language="es-ES", keyword="hola", q=None):
         self.reconocedor = sr.Recognizer()
         self.language = language
         self.keyword = keyword.lower()
@@ -20,6 +22,7 @@ class SpeechRecognizer:
         self.engine = pyttsx3.init()
         self.json_file = "preguntas_respuestas.json"
         self.inicializar_json()
+        self.plot_queue = queue.Queue()
 
     def inicializar_json(self):
         """Inicializa el archivo JSON si no existe."""
@@ -80,59 +83,7 @@ class SpeechRecognizer:
             # Encontrar la frecuencia dominante
             peak_freq = positive_freqs[np.argmax(positive_spectrum)]
             return peak_freq
-        
-        
-        
-    def graficar_espectro(self, audio_data):
-        """
-        Grafica el espectro de frecuencia y el nivel de decibeles en el tiempo.
-        """
-        try:
-            with wave.open(io.BytesIO(audio_data), 'rb') as wav_file:
-                n_frames = wav_file.getnframes()
-                framerate = wav_file.getframerate()
-                audio_frames = wav_file.readframes(n_frames)
-                audio_samples = np.frombuffer(audio_frames, dtype=np.int16)
 
-                # Calcular el tiempo
-                tiempo = np.linspace(0, len(audio_samples) / framerate, num=len(audio_samples))
-
-                # FFT para espectro de frecuencia
-                spectrum = np.fft.fft(audio_samples)
-                freqs = np.fft.fftfreq(len(spectrum), d=1 / framerate)
-
-                # Filtrar frecuencias positivas
-                positive_freqs = freqs[:len(freqs) // 2]
-                positive_spectrum = np.abs(spectrum[:len(spectrum) // 2])
-
-                # Calcular decibeles
-                amplitudes = np.abs(audio_samples)
-                decibeles = 20 * np.log10(amplitudes + 1e-6)  # Evitar log(0)
-
-                # Graficar espectro de frecuencia
-                plt.figure(figsize=(12, 6))
-
-                plt.subplot(2, 1, 1)
-                plt.plot(positive_freqs, positive_spectrum)
-                plt.title("Espectro de Frecuencia")
-                plt.xlabel("Frecuencia (Hz)")
-                plt.ylabel("Amplitud")
-                plt.grid()
-
-                # Graficar decibeles en el tiempo
-                plt.subplot(2, 1, 2)
-                plt.plot(tiempo, decibeles)
-                plt.title("Nivel de Decibeles en el Tiempo")
-                plt.xlabel("Tiempo (s)")
-                plt.ylabel("Decibeles (dB)")
-                plt.grid()
-
-                plt.tight_layout()
-                plt.show()
-        except Exception as e:
-            print(f"Error al graficar espectro: {e}")
-
-        
     def escuchar_continuamente(self):
         """Escucha continuamente y procesa preguntas cuando se detecta la palabra clave."""
         with sr.Microphone(device_index=0) as source:
@@ -163,9 +114,10 @@ class SpeechRecognizer:
                                 # Obtener datos de audio crudo
                                 audio_data = pregunta_audio.get_wav_data()
                                 
-                                self.graficar_espectro(audio_data)
-
-
+                                # Datos a Graficar espectrograma
+                                self.plot_queue.put(audio_data)
+                                print("Tamaño de la cola:", self.plot_queue.qsize())
+                                
                                 # Calcular frecuencia dominante
                                 frecuencia = self.calcular_frecuencia_dominante(audio_data)
                                 print(f"Frecuencia dominante: {frecuencia} Hz")
