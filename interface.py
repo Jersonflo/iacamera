@@ -1,4 +1,3 @@
-# interface.py
 import pyttsx3
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QMessageBox, QSpacerItem, QSizePolicy
@@ -6,14 +5,25 @@ from PyQt5.QtGui import QImage, QPixmap, QPainter, QBrush, QColor, QIcon
 from robot_control import RobotCameraController
 from Gemini import ChatBotApp 
 from voice import SpeechRecognizer
+import matplotlib.pyplot as plt
 import threading
+from multiprocessing import Queue
 import queue
+import psutil
+
+
+
 
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Ventana Principal")
         self.setGeometry(100, 100, 1200, 800)
+        
+        #verificamos conexion a internet (ethernet o wifi)
+        # Devuelve True si alguna interfaz está activa, False en caso contrario
+        self.is_connected = any(stats.isup for stats in psutil.net_if_stats().values())
+        
 
         # Inicialización del motor de texto a voz
         self.engine = pyttsx3.init()
@@ -21,6 +31,8 @@ class MainWindow(QWidget):
 
         # Cola para pasar las preguntas entre hilos
         self.q = queue.Queue()
+        self.plot_queue = queue.Queue()
+        
         # Inicializa ChatBotApp y SpeechRecognizer
         self.chatbot_app = ChatBotApp() 
         self.voice_app = SpeechRecognizer()
@@ -119,12 +131,17 @@ class MainWindow(QWidget):
 
     def iniciar_camara(self):
         """Inicia la cámara y el controlador del robot."""
+        # Verifica si el controlador del robot ya está inicializado
         if not self.robot_controller:
-            # Re-inicializa el controlador de la cámara y del robot
-            self.robot_controller = RobotCameraController(serial_port='/dev/tty.usbserial-0001')
-        # Inicia la escucha continua de audio
-        self.iniciar_escucha_continua()
-        self.timer.start(30)  # Inicia el temporizador para actualizar la imagen
+            # Inicializa el controlador de la cámara y del robot
+            self.robot_controller = RobotCameraController(serial_port='COM10')
+        
+        # Comprueba si hay conexión antes de iniciar la escucha continua de audio
+        if self.is_connected:
+            self.iniciar_escucha_continua()
+        
+        # Arranca el temporizador para la cámara
+        self.timer.start(30)
 
     def detener_camara(self):
         """Detiene la cámara y limpia el área de visualización."""
@@ -175,6 +192,32 @@ class MainWindow(QWidget):
             "- ?: Abre esta ventana de ayuda."
         )
         QMessageBox.information(self, "Ayuda", mensaje_ayuda)
+        
+        
+    def graficar_espectrograma(self):
+        """Genera un espectrograma del audio extraído desde la cola."""
+        print("Tamaño de la cola:", self.plot_queue.qsize())
+        if not self.plot_queue.empty():
+            # Extraer datos de la cola
+            audio_data = self.plot_queue.get()
+
+            with wave.open(io.BytesIO(audio_data), 'rb') as wav_file:
+                framerate = wav_file.getframerate()
+                n_frames = wav_file.getnframes()
+                audio_frames = wav_file.readframes(n_frames)
+                audio_samples = np.frombuffer(audio_frames, dtype=np.int16)
+
+                # Configuración del espectrograma
+                plt.figure(figsize=(10, 6))
+                plt.specgram(audio_samples, Fs=framerate, NFFT=1024, noverlap=512, cmap="viridis")
+                plt.title("Espectrograma del audio")
+                plt.xlabel("Tiempo (s)")
+                plt.ylabel("Frecuencia (Hz)")
+                plt.colorbar(label="Intensidad (dB)")
+                plt.tight_layout()
+                plt.show()
+        else:
+            print("La cola está vacía. No hay datos de audio para procesar.")
 
     def iniciar_escucha_continua(self):
         """Inicia la escucha continua de voz en un hilo separado."""
@@ -188,5 +231,6 @@ class MainWindow(QWidget):
     def keyPressEvent(self, event):
         """Cierra la ventana y la cámara al presionar la tecla Esc."""
         if event.key() == Qt.Key_Escape:
+            self.graficar_espectrograma()
             self.detener_camara()
             self.close()
