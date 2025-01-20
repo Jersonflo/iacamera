@@ -21,7 +21,7 @@ class RobotCameraController:
         self.net = cv2.dnn.readNetFromCaffe('deploy.prototxt', 'res10_300x300_ssd_iter_140000.caffemodel')
 
         # Configurar la cámara
-        self.cap = cv2.VideoCapture(0)
+        self.cap = cv2.VideoCapture(1)
         if not self.cap.isOpened():
             print("No se puede abrir la cámara")
             exit()
