@@ -411,7 +411,12 @@ class AppUI(ctk.CTk):
         if not self.is_running:
             from tracker import FaceTracker
             robot_mode = (self._robot_var.get() == "Con Robot")
-            cam_idx = int(self._cam_var.get())
+            cam_val = self._cam_var.get()
+            if not cam_val.isdigit():
+                self._log("⚠ Error: Selección de cámara no válida o buscando...")
+                self._lbl_status.configure(text="Selección de cámara no válida.")
+                return
+            cam_idx = int(cam_val)
             self.tracker = FaceTracker(
                 camera_index=cam_idx,
                 robot_mode=robot_mode,
