@@ -61,6 +61,7 @@ class FaceTracker:
             self.ser = serial.Serial(self.serial_port, self.baud_rate)
             time.sleep(2)
             print(f"[Serial] Conectado a {self.serial_port}")
+            self._enviar_comando(b'p')  # Asegurar que se posicione en la posición inicial (90, 90) al conectar
         except serial.SerialException as e:
             print(f"[Serial] No se puede abrir el puerto: {e}")
             self.ser = None
