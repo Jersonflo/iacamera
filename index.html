@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IACamera Web 2.0</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  
+</head>
+<body>
+  <div class="app-container">
+    <!-- HEADER -->
+    <header class="main-header">
+      <div class="header-left">
+        <span class="status-dot" id="camStatusDot">⬤</span>
+        <h1 class="app-title">IACamera <span>Web 2.0</span></h1>
+        <span class="header-status-lbl" id="systemStatusText">— Sistema detenido</span>
+      </div>
+      <div class="header-right">
+        <span class="serial-badge danger" id="serialBadge">⬤ Sin conexión serial</span>
+      </div>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="main-content">
+      <!-- ÁREA DE VIDEO (IZQUIERDA) -->
+      <section class="video-section">
+        <div class="video-container" id="videoContainer">
+          <video class="input_video" id="inputVideo" playsinline style="display:none;"></video>
+          <canvas class="output_canvas" id="outputCanvas"></canvas>
+          <div class="video-placeholder" id="videoPlaceholder">
+            <span class="placeholder-icon">🎥</span>
+            <span class="placeholder-text">Cámara apagada</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- PANEL LATERAL (DERECHA) -->
+      <aside class="side-panel">
+        
+        <!-- SECCIÓN CONTROLES -->
+        <div class="panel-section">
+          <h2>⚡ Controles</h2>
+          <button id="btnConnectSerial" class="btn btn-connect">🔌 Conectar Serial</button>
+          <button id="btnStartCamera" class="btn btn-start" disabled>▶ Iniciar Cámara</button>
+          <button id="btnStopCamera" class="btn btn-stop" disabled>⏹ Detener Cámara</button>
+          <button id="btnCenterServos" class="btn btn-gray" disabled>🎯 Centrar Servos</button>
+        </div>
+
+        <!-- SECCIÓN CONFIGURACIÓN -->
+        <div class="panel-section">
+          <h2>⚙ Configuración</h2>
+          
+          <div class="input-group">
+            <label for="cameraSelect">Cámara disponible</label>
+            <select id="cameraSelect" class="form-select">
+              <option value="">Cargando cámaras...</option>
+            </select>
+          </div>
+
+          <div class="input-group">
+            <div class="slider-header">
+              <label for="deadZoneWidth">Zona muerta — Ancho</label>
+              <span class="slider-val" id="valDzW">300 px</span>
+            </div>
+            <input type="range" id="deadZoneWidth" min="50" max="600" step="10" value="300" class="form-slider">
+          </div>
+
+          <div class="input-group">
+            <div class="slider-header">
+              <label for="deadZoneHeight">Zona muerta — Alto</label>
+              <span class="slider-val" id="valDzH">300 px</span>
+            </div>
+            <input type="range" id="deadZoneHeight" min="50" max="600" step="10" value="300" class="form-slider">
+          </div>
+        </div>
+
+        <!-- SECCIÓN ESTADÍSTICAS -->
+        <div class="panel-section">
+          <h2>📊 Estadísticas</h2>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <span class="stat-lbl">FPS</span>
+              <span class="stat-val" id="statFps">—</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-lbl">Rostros</span>
+              <span class="stat-val" id="statFaces">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-lbl">Posición X</span>
+              <span class="stat-val" id="statX">—</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-lbl">Posición Y</span>
+              <span class="stat-val" id="statY">—</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-lbl">Confianza</span>
+              <span class="stat-val" id="statConf">—</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-lbl">Estado Robot</span>
+              <span class="stat-val highlight" id="statRobot">Esperando</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN LOGS -->
+        <div class="panel-section">
+          <div class="log-header">
+            <h2>📋 Log de comandos</h2>
+            <button id="btnClearLog" class="btn-clear-log">Limpiar</button>
+          </div>
+          <div class="log-box" id="logBox">
+            <div class="log-line text-dim">[00:00:00] Sistema web listo. Conecta el puerto serial para comenzar.</div>
+          </div>
+        </div>
+
+      </aside>
+    </main>
+
+    <!-- STATUS BAR -->
+    <footer class="status-bar">
+      <span id="statusBarText">Listo</span>
+    </footer>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

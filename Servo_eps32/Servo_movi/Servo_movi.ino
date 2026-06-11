@@ -1,5 +1,10 @@
 #include <ESP32Servo.h>
 
+// Constantes de suavizado y paso
+const int PASO_SERVO = 4;      // Grados que se moverá el servo por cada comando (antes era 8)
+const int DELAY_PASO = 15;     // Tiempo (ms) por cada grado de movimiento en tracker
+const int DELAY_INICIO = 30;   // Tiempo (ms) por grado durante el arranque lento
+
 // Declaración de variables y configuración
 char dato;
 int velocidad_h = 90;  // Ángulo para el servo horizontal
@@ -38,15 +43,20 @@ unsigned long holdStartMillis = 0;   // Marca de tiempo para mantener velocidade
 
 
 void setup() {
-  // Configuración de los servos
-  myServo.attach(servoPin);
-  myServo_1.attach(servoPin_1);
-  myServo.write(90);  // Posicionar los servos en 90 grados al iniciar el código
-  myServo_1.write(90);
-
   // Configuración del monitor serial
   Serial.begin(9600);
   Serial.setTimeout(5);  // Ajustar el tiempo de espera para Serial
+
+  velocidad_h = 90;
+  velocidad_v = 90;
+
+  // Escribir la posición inicial (90, 90) ANTES de hacer attach para evitar tirones bruscos
+  myServo.write(velocidad_h);
+  myServo_1.write(velocidad_v);
+
+  // Configuración de los servos
+  myServo.attach(servoPin);
+  myServo_1.attach(servoPin_1);
 
   // Configuración de los pines del motor DC
   pinMode(IN1, OUTPUT);
@@ -77,8 +87,6 @@ void loop() {
   if (Serial.available()) {
     procesarComandosSerial();
   }
-
-  // Otras lógicas si las hubiera ...
 }
 
 // --- MÁQUINA DE ESTADOS DEL PIVOTE ---
@@ -159,25 +167,25 @@ void procesarComandosSerial() {
     switch (dato) {
       case 'd': 
         movimientoEnProceso = true;
-        moverServoSuavemente(myServo, &velocidad_h, 8, 150);
+        moverServoSuavemente(myServo, &velocidad_h, PASO_SERVO, 150);
         movimientoEnProceso = false;
         break;
         
       case 'i': 
         movimientoEnProceso = true;
-        moverServoSuavemente(myServo, &velocidad_h, -8, 50);
+        moverServoSuavemente(myServo, &velocidad_h, -PASO_SERVO, 50);
         movimientoEnProceso = false;
         break;
 
       case 'a': 
         movimientoEnProceso = true;
-        moverServoSuavemente(myServo_1, &velocidad_v, 8, 150);
+        moverServoSuavemente(myServo_1, &velocidad_v, PASO_SERVO, 150);
         movimientoEnProceso = false;
         break;
 
       case 'b': 
         movimientoEnProceso = true;
-        moverServoSuavemente(myServo_1, &velocidad_v, -8, 50);
+        moverServoSuavemente(myServo_1, &velocidad_v, -PASO_SERVO, 50);
         movimientoEnProceso = false;
         break;
 
@@ -203,7 +211,7 @@ void moverServoSuavemente(Servo &servo, int *anguloActual, int incremento, int l
     if (*anguloActual < anguloObjetivo) (*anguloActual)++;
     else if (*anguloActual > anguloObjetivo) (*anguloActual)--;
     servo.write(*anguloActual);
-    delay(15);  // Este delay sólo afecta a los servos, NO al pivote
+    delay(DELAY_PASO);  // Este delay sólo afecta a los servos, NO al pivote
   }
 }
 
