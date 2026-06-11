@@ -3,8 +3,11 @@ from PIL import Image
 import cv2
 import os
 import threading
+import queue
 from datetime import datetime
-from assistant import VoiceAssistant
+
+# ── CAMBIO 1: importar NovaAgent en lugar de VoiceAssistant ──
+from nova_agent import NovaAgent, AgentEvent, EventType, AgentState
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -14,8 +17,8 @@ COLORS = {
     "bg":          "#0d1117",
     "surface":     "#161b22",
     "surface2":    "#1c2128",
-    "accent":      "#00d4ff",    # Cian neón
-    "accent2":     "#00ff88",    # Verde neón
+    "accent":      "#00d4ff",
+    "accent2":     "#00ff88",
     "danger":      "#ff4757",
     "warn":        "#ffa502",
     "text":        "#e6edf3",
@@ -35,12 +38,10 @@ class AppUI(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        # ── Apariencia global ──────────────────────────────────
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
         self.configure(fg_color=COLORS["bg"])
 
-        # ── Ventana ───────────────────────────────────────────
         self.title("IACamera 2.0")
         self.geometry("1200x720")
         self.minsize(900, 580)
@@ -51,52 +52,116 @@ class AppUI(ctk.CTk):
         self._log_lines = []
         self._last_robot_state = ""
 
-        # Asistente de Voz
-        self.assistant = VoiceAssistant()
-        self.assistant.on_state_change = self._on_assistant_state
-        self.assistant.on_user_text = self._on_assistant_user_text
-        self.assistant.on_bot_response = self._on_assistant_bot_response
+        # ── CAMBIO 2: cola de eventos compartida ──────────────
+        # La cola conecta NovaAgent ↔ UI ↔ FaceTracker
+        self._agent_event_queue: queue.Queue[AgentEvent] = queue.Queue()
+
+        # ── CAMBIO 3: instanciar NovaAgent con callbacks ──────
+        # Los callbacks son exactamente iguales a los del VoiceAssistant anterior:
+        # on_state_change, on_user_text, on_bot_response — mismo nombre, misma firma.
+        self.assistant = NovaAgent(
+            event_queue     = self._agent_event_queue,
+            on_state_change = self._on_assistant_state,   # fn(AgentState)
+            on_user_text    = self._on_assistant_user_text,  # fn(str)
+            on_bot_response = self._on_assistant_bot_response,  # fn(str)
+        )
 
         self._build_ui()
         self._log("Sistema iniciado. Listo.")
-        # Escanear cámaras disponibles tras cargar la UI
         self.after(400, self._escanear_camaras)
 
+        # ── CAMBIO 4: leer eventos del agente cada 100ms ──────
+        # Coordina el FaceTracker cuando NOVA empieza/termina de hablar
+        self._poll_agent_events()
+
     # ═══════════════════════════════════════════════════════════
-    #  CONSTRUCCIÓN DE LA UI
+    #  NUEVO: consumidor de eventos del agente
+    # ═══════════════════════════════════════════════════════════
+    def _poll_agent_events(self):
+        """
+        Lee la cola de eventos del NovaAgent y reacciona.
+        Corre en el hilo principal de Tkinter cada 100ms (after).
+        
+        Eventos clave:
+          SPEAKING_START → pausar FaceTracker (servos quietos mientras habla)
+          SPEAKING_END   → reanudar FaceTracker
+        """
+        try:
+            while True:  # vaciar todos los eventos acumulados
+                event: AgentEvent = self._agent_event_queue.get_nowait()
+                self._handle_agent_event(event)
+        except queue.Empty:
+            pass  # normal, no hay eventos nuevos
+
+        # Reprogramar la próxima revisión
+        self.after(100, self._poll_agent_events)
+
+    def _handle_agent_event(self, event: AgentEvent):
+        """Reacciona a eventos publicados por NovaAgent."""
+        if event.type == EventType.SPEAKING_START:
+            # NOVA va a hablar → pausar servos para evitar ruido / eco del mic
+            if self.tracker:
+                self._pause_tracker()
+            self._log("🔊 NOVA hablando — tracker pausado")
+
+        elif event.type == EventType.SPEAKING_END:
+            # NOVA terminó → reanudar seguimiento facial
+            if self.tracker:
+                self._resume_tracker()
+            self._log("👂 NOVA escuchando — tracker activo")
+
+        elif event.type == EventType.STATE_CHANGED:
+            # Actualizar barra de estado con el estado del agente
+            pass  # ya lo hace on_state_change callback
+
+        elif event.type == EventType.SHUTDOWN:
+            self._log("Agente NOVA apagado.")
+
+    def _pause_tracker(self):
+        """
+        Pausa el seguimiento facial mientras NOVA habla.
+        El FaceTracker actual no tiene pause(), así que usamos
+        una bandera interna para saltar el envío de comandos serial.
+        """
+        if self.tracker:
+            self.tracker.robot_mode = False
+            self._log("Tracker: comandos serial suspendidos.")
+
+    def _resume_tracker(self):
+        """Reanuda el envío de comandos al robot."""
+        if self.tracker and self._robot_var.get() == "Con Robot":
+            self.tracker.robot_mode = True
+            self._log("Tracker: comandos serial reanudados.")
+
+    # ═══════════════════════════════════════════════════════════
+    #  CONSTRUCCIÓN DE LA UI  (sin cambios respecto al original)
     # ═══════════════════════════════════════════════════════════
     def _build_ui(self):
-        # Layout raíz: header + contenido + statusbar
-        self.grid_rowconfigure(0, weight=0)   # header
-        self.grid_rowconfigure(1, weight=1)   # contenido
-        self.grid_rowconfigure(2, weight=0)   # statusbar
+        self.grid_rowconfigure(0, weight=0)
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=0)
         self.grid_columnconfigure(0, weight=1)
 
         self._build_header()
         self._build_content()
         self._build_statusbar()
 
-    # ── Header ───────────────────────────────────────────────
     def _build_header(self):
         hdr = ctk.CTkFrame(self, fg_color=COLORS["surface"], height=60, corner_radius=0)
         hdr.grid(row=0, column=0, sticky="ew")
         hdr.grid_columnconfigure(1, weight=1)
         hdr.grid_propagate(False)
 
-        # Dot de estado (cámara)
         self._dot_cam = ctk.CTkLabel(hdr, text="⬤", font=("Roboto", 14),
                                       text_color=COLORS["text_dim"], width=20)
         self._dot_cam.grid(row=0, column=0, padx=(18, 4), pady=18)
 
-        # Título
-        title = ctk.CTkLabel(
+        ctk.CTkLabel(
             hdr, text="IACamera  2.0",
             font=("Roboto", 22, "bold"),
             text_color=COLORS["accent"]
-        )
-        title.grid(row=0, column=1, sticky="w", padx=4)
+        ).grid(row=0, column=1, sticky="w", padx=4)
 
-        # Subtítulo / estado dinámico
         self._lbl_estado_hdr = ctk.CTkLabel(
             hdr, text="— Sistema detenido",
             font=("Roboto", 13),
@@ -104,7 +169,6 @@ class AppUI(ctk.CTk):
         )
         self._lbl_estado_hdr.grid(row=0, column=2, sticky="w", padx=12)
 
-        # Badge serial
         self._badge_serial = ctk.CTkLabel(
             hdr,
             text="⬤  Sin conexión serial",
@@ -113,20 +177,18 @@ class AppUI(ctk.CTk):
         )
         self._badge_serial.grid(row=0, column=3, padx=20, pady=18, sticky="e")
 
-    # ── Contenido principal ──────────────────────────────────
     def _build_content(self):
         content = ctk.CTkFrame(self, fg_color=COLORS["bg"], corner_radius=0)
         content.grid(row=1, column=0, sticky="nsew")
-        content.grid_rowconfigure(0, weight=1)      # video
-        content.grid_rowconfigure(1, weight=0)      # subtítulos (voz)
-        content.grid_columnconfigure(0, weight=3)   # área central
-        content.grid_columnconfigure(1, weight=0)   # panel lateral
+        content.grid_rowconfigure(0, weight=1)
+        content.grid_rowconfigure(1, weight=0)
+        content.grid_columnconfigure(0, weight=3)
+        content.grid_columnconfigure(1, weight=0)
 
         self._build_video_area(content)
         self._build_subtitle_area(content)
         self._build_side_panel(content)
 
-    # ── Área de vídeo ────────────────────────────────────────
     def _build_video_area(self, parent):
         frame = ctk.CTkFrame(parent, fg_color=COLORS["surface"],
                              corner_radius=14, border_width=1,
@@ -144,7 +206,6 @@ class AppUI(ctk.CTk):
         self.label_video.grid(row=0, column=0, sticky="nsew")
         self._frame_camara = frame
 
-    # ── Área de Subtítulos (Voz) ─────────────────────────────
     def _build_subtitle_area(self, parent):
         frame = ctk.CTkFrame(parent, fg_color=COLORS["surface"], height=100, corner_radius=14)
         frame.grid(row=1, column=0, padx=(16, 8), pady=(0, 16), sticky="ew")
@@ -165,8 +226,6 @@ class AppUI(ctk.CTk):
         )
         self.lbl_bot_text.grid(row=1, column=0, padx=16, pady=(0, 10), sticky="w")
 
-
-    # ── Panel lateral ─────────────────────────────────────────
     def _build_side_panel(self, parent):
         panel = ctk.CTkScrollableFrame(
             parent, fg_color=COLORS["surface"],
@@ -177,7 +236,6 @@ class AppUI(ctk.CTk):
 
         row = 0
 
-        # ── Sección: Controles ─────────────────────────────
         row = self._section(panel, "⚡  Controles", row)
 
         self.btn_iniciar = self._big_button(
@@ -199,7 +257,7 @@ class AppUI(ctk.CTk):
         row += 1
 
         self.btn_voz = self._big_button(
-            panel, "🎙️  Activar Voz", "#8e44ad", "#9b59b6",
+            panel, "🎙️  Activar NOVA", "#8e44ad", "#9b59b6",
             self.toggle_voz, row
         )
         row += 1
@@ -210,10 +268,8 @@ class AppUI(ctk.CTk):
         )
         row += 1
 
-        # ── Sección: Configuración ─────────────────────────
         row = self._section(panel, "⚙  Configuración", row)
 
-        # Toggle robot
         ctk.CTkLabel(panel, text="Modo Robot", font=("Roboto", 13),
                       text_color=COLORS["text_dim"]).grid(
             row=row, column=0, sticky="w", padx=16, pady=(4, 0))
@@ -233,7 +289,6 @@ class AppUI(ctk.CTk):
         self._toggle_robot.grid(row=row, column=0, padx=16, pady=(0, 8), sticky="ew")
         row += 1
 
-        # Selector de cámara
         cam_header = ctk.CTkFrame(panel, fg_color="transparent")
         cam_header.grid(row=row, column=0, sticky="ew", padx=16, pady=(4, 0))
         cam_header.grid_columnconfigure(0, weight=1)
@@ -265,7 +320,6 @@ class AppUI(ctk.CTk):
         self._cam_menu.grid(row=row, column=0, padx=16, pady=(0, 8), sticky="ew")
         row += 1
 
-        # Slider zona muerta horizontal
         ctk.CTkLabel(panel, text="Zona muerta — Ancho", font=("Roboto", 13),
                       text_color=COLORS["text_dim"]).grid(
             row=row, column=0, sticky="w", padx=16, pady=(4, 0))
@@ -287,7 +341,6 @@ class AppUI(ctk.CTk):
         ).grid(row=row, column=0, padx=16, pady=(0, 8), sticky="ew")
         row += 1
 
-        # Slider zona muerta vertical
         ctk.CTkLabel(panel, text="Zona muerta — Alto", font=("Roboto", 13),
                       text_color=COLORS["text_dim"]).grid(
             row=row, column=0, sticky="w", padx=16, pady=(4, 0))
@@ -309,7 +362,6 @@ class AppUI(ctk.CTk):
         ).grid(row=row, column=0, padx=16, pady=(0, 8), sticky="ew")
         row += 1
 
-        # ── Sección: Estadísticas ──────────────────────────
         row = self._section(panel, "📊  Estadísticas", row)
 
         stats_labels = [
@@ -319,11 +371,12 @@ class AppUI(ctk.CTk):
             ("Posición Y", "_stat_y"),
             ("Confianza", "_stat_conf"),
             ("Estado robot", "_stat_robot"),
+            # ── NUEVO: estado del agente NOVA ─────────────────
+            ("NOVA estado", "_stat_nova"),
         ]
         for label_text, attr in stats_labels:
             row = self._stat_row(panel, label_text, attr, row)
 
-        # ── Sección: Log de comandos ───────────────────────
         row = self._section(panel, "📋  Log de comandos", row)
 
         self._log_box = ctk.CTkTextbox(
@@ -339,18 +392,16 @@ class AppUI(ctk.CTk):
         self._log_box.grid(row=row, column=0, padx=16, pady=(0, 12), sticky="ew")
         row += 1
 
-        btn_clear = ctk.CTkButton(
+        ctk.CTkButton(
             panel, text="Limpiar log",
             font=("Roboto", 12),
             height=30,
             fg_color=COLORS["surface2"],
             hover_color=COLORS["btn_gray"],
             command=self._clear_log
-        )
-        btn_clear.grid(row=row, column=0, padx=16, pady=(0, 16), sticky="ew")
+        ).grid(row=row, column=0, padx=16, pady=(0, 16), sticky="ew")
         row += 1
 
-    # ── Status bar ───────────────────────────────────────────
     def _build_statusbar(self):
         bar = ctk.CTkFrame(self, fg_color=COLORS["surface"], height=28, corner_radius=0)
         bar.grid(row=2, column=0, sticky="ew")
@@ -366,13 +417,12 @@ class AppUI(ctk.CTk):
         self._lbl_status.grid(row=0, column=0, padx=12, pady=4, sticky="w")
 
     # ═══════════════════════════════════════════════════════════
-    #  HELPERS DE CONSTRUCCIÓN
+    #  HELPERS
     # ═══════════════════════════════════════════════════════════
     def _section(self, parent, title: str, row: int) -> int:
-        """Dibuja un separador de sección y retorna la siguiente fila."""
-        frame = ctk.CTkFrame(parent, fg_color=COLORS["surface2"],
-                              height=1, corner_radius=0)
-        frame.grid(row=row, column=0, sticky="ew", padx=8, pady=(14, 2))
+        ctk.CTkFrame(parent, fg_color=COLORS["surface2"],
+                     height=1, corner_radius=0).grid(
+            row=row, column=0, sticky="ew", padx=8, pady=(14, 2))
         row += 1
         ctk.CTkLabel(parent, text=title, font=("Roboto", 13, "bold"),
                       text_color=COLORS["accent"]).grid(
@@ -425,7 +475,6 @@ class AppUI(ctk.CTk):
             self.btn_captura.configure(state="normal")
             self.label_video.configure(text="")
 
-            # Actualizar header
             self._dot_cam.configure(text_color=COLORS["accent2"])
             self._lbl_estado_hdr.configure(
                 text=f"— En vivo · Cámara {cam_idx}",
@@ -464,37 +513,59 @@ class AppUI(ctk.CTk):
             path = os.path.join(folder, f"captura_{ts}.png")
             cv2.imwrite(path, frame)
             self._log(f"📸 Foto guardada: captura_{ts}.png")
-            self._lbl_status.configure(text=f"Foto guardada en ~/Desktop/IACamera_Capturas/")
+            self._lbl_status.configure(text="Foto guardada en ~/Desktop/IACamera_Capturas/")
 
     def toggle_voz(self):
-        if self.assistant.is_running:
+        # ── CAMBIO 5: is_running ahora es threading.Event en NovaAgent ──
+        # Usamos el método is_running() del agente
+        if self.assistant.is_running():
             self.assistant.stop()
-            self.btn_voz.configure(text="🎙️  Activar Voz", fg_color="#8e44ad", hover_color="#9b59b6")
+            self.btn_voz.configure(
+                text="🎙️  Activar NOVA",
+                fg_color="#8e44ad",
+                hover_color="#9b59b6"
+            )
+            self._log("NOVA desactivada.")
         else:
             self.assistant.start()
-            self.btn_voz.configure(text="🔇  Desactivar Voz", fg_color=COLORS["btn_stop"], hover_color=COLORS["btn_stop_h"])
+            self.btn_voz.configure(
+                text="🔇  Desactivar NOVA",
+                fg_color=COLORS["btn_stop"],
+                hover_color=COLORS["btn_stop_h"]
+            )
+            self._log("NOVA activada — calibrando micrófono...")
 
     def cerrar_app(self):
         self.detener_camara()
-        if self.assistant.is_running:
+        if self.assistant.is_running():
             self.assistant.stop()
         self.destroy()
 
     # ═══════════════════════════════════════════════════════════
-    #  CALLBACKS DE VOZ
+    #  CALLBACKS DE VOZ (NovaAgent → UI)
+    #  Misma firma que antes, solo cambia el tipo del primer arg
     # ═══════════════════════════════════════════════════════════
-    def _on_assistant_state(self, state_str):
-        self.after(0, lambda: self._lbl_status.configure(text=f"Voz: {state_str}"))
-        self.after(0, lambda: self._log(f"Asistente: {state_str}"))
+    def _on_assistant_state(self, state: AgentState):
+        """
+        Antes recibía un str. Ahora recibe AgentState (Enum).
+        Convertimos a string para mostrar igual que antes.
+        """
+        state_str = state.name.capitalize().replace("_", " ")
+        self.after(0, lambda: self._lbl_status.configure(text=f"NOVA: {state_str}"))
+        self.after(0, lambda: self._stat_nova.configure(text=state_str))
 
-    def _on_assistant_user_text(self, text):
+    def _on_assistant_user_text(self, text: str):
         self.after(0, lambda: self.lbl_user_text.configure(text=f"Usuario: {text}"))
+        self.after(0, lambda: self._log(f"👤 {text}"))
 
-    def _on_assistant_bot_response(self, text):
-        self.after(0, lambda: self.lbl_bot_text.configure(text=f"Robot: {text}"))
+    def _on_assistant_bot_response(self, text: str):
+        # Truncar en pantalla si es muy largo
+        display = text if len(text) <= 120 else text[:117] + "..."
+        self.after(0, lambda: self.lbl_bot_text.configure(text=f"NOVA: {display}"))
+        self.after(0, lambda: self._log(f"🤖 {text[:80]}..."))
 
     # ═══════════════════════════════════════════════════════════
-    #  CALLBACKS DE CONFIGURACIÓN
+    #  CALLBACKS DE CONFIGURACIÓN (sin cambios)
     # ═══════════════════════════════════════════════════════════
     def _on_toggle_robot(self, value):
         if self.tracker:
@@ -503,7 +574,6 @@ class AppUI(ctk.CTk):
         self._log(f"Modo cambiado a: {value}")
 
     def _on_cam_change(self, value):
-        """Cambia la cámara en un hilo separado para no bloquear la UI."""
         if not (self.is_running and self.tracker):
             return
         if not value.isdigit():
@@ -521,9 +591,7 @@ class AppUI(ctk.CTk):
 
         threading.Thread(target=_cambiar, daemon=True).start()
 
-    # ─────────────────────────────────────────────────────────
     def _escanear_camaras(self):
-        """Lanza un hilo que prueba los índices 0-5 y actualiza el selector."""
         self._cam_menu.configure(state="disabled", values=["Buscando..."])
         self._cam_var.set("Buscando...")
         self._btn_scan.configure(state="disabled")
@@ -531,7 +599,6 @@ class AppUI(ctk.CTk):
         threading.Thread(target=self._scan_worker, daemon=True).start()
 
     def _scan_worker(self):
-        """Corre en hilo secundario: prueba cv2.VideoCapture para cada índice."""
         disponibles = []
         for idx in range(6):
             cap = cv2.VideoCapture(idx)
@@ -541,7 +608,6 @@ class AppUI(ctk.CTk):
         self.after(0, lambda: self._aplicar_camaras(disponibles))
 
     def _aplicar_camaras(self, disponibles: list[str]):
-        """Actualiza el selector con las cámaras encontradas (hilo principal)."""
         if not disponibles:
             self._cam_menu.configure(values=["N/A"], state="disabled")
             self._cam_var.set("N/A")
@@ -567,7 +633,7 @@ class AppUI(ctk.CTk):
             self.tracker.dead_zone_height = v
 
     # ═══════════════════════════════════════════════════════════
-    #  BUCLE DE VÍDEO
+    #  BUCLE DE VÍDEO (sin cambios)
     # ═══════════════════════════════════════════════════════════
     def _actualizar_frame(self):
         if not self.is_running or not self.tracker:
@@ -588,12 +654,11 @@ class AppUI(ctk.CTk):
                 self.label_video.configure(image=ctk_img)
                 self.label_video.image = ctk_img
 
-        # Actualizar estadísticas cada frame
         self._update_stats()
         self.after(15, self._actualizar_frame)
 
     # ═══════════════════════════════════════════════════════════
-    #  ESTADÍSTICAS
+    #  ESTADÍSTICAS (sin cambios)
     # ═══════════════════════════════════════════════════════════
     def _update_stats(self):
         if not self.tracker:
@@ -615,14 +680,13 @@ class AppUI(ctk.CTk):
         robot_state = fd["robot_state"]
         self._stat_robot.configure(text=robot_state)
 
-        # Log solo cuando cambia el estado del robot
         if robot_state != self._last_robot_state and robot_state not in ("Centrado", "Buscando...", "Esperando"):
             self._log(f"Robot: {robot_state}")
         self._last_robot_state = robot_state
 
     def _reset_stats(self):
         for attr in ("_stat_fps", "_stat_faces", "_stat_x", "_stat_y",
-                     "_stat_conf", "_stat_robot"):
+                     "_stat_conf", "_stat_robot", "_stat_nova"):
             getattr(self, attr).configure(text="—")
 
     def _update_serial_badge(self):
@@ -641,7 +705,7 @@ class AppUI(ctk.CTk):
             )
 
     # ═══════════════════════════════════════════════════════════
-    #  LOG
+    #  LOG (sin cambios)
     # ═══════════════════════════════════════════════════════════
     def _log(self, msg: str):
         ts = datetime.now().strftime("%H:%M:%S")
