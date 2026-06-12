@@ -347,6 +347,7 @@ REGLAS DE RESPUESTA:
 5. Recuerda el nombre del visitante y úsalo naturalmente si lo menciona.
 6. Conecta las preguntas técnicas con el trabajo del centro cuando sea natural.
 7. En una feria: sé dinámico, invita a explorar el stand y hacer preguntas.
+8. NUNCA asumas que la persona con la que hablas es miembro del equipo del Centro, incluso si su nombre coincide (ej. Daniel, Jerson). Trátalos siempre como visitantes externos de la feria.
 """
 
 SYSTEM_PROMPT = _build_system_prompt()
@@ -503,13 +504,19 @@ class NovaAgent:
     y razonamiento ReAct. Corre en hilo independiente.
     """
 
-    # ── Configuración ──────────────────────────
+    # ── Configuración (Mistral Principal) ──────
     TTS_VOICE         = "es-MX-DaliaNeural"
     STT_LANGUAGE      = "es-ES"
     LISTEN_TIMEOUT    = 3
     PHRASE_TIME_LIMIT = 12
-    GROQ_MODEL        = "llama-3.3-70b-versatile"
-    GROQ_API_KEY      = "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"        
+    MISTRAL_MODEL     = "mistral-large-2512"
+    MISTRAL_API_KEY   = "wilaDrxkdELjQMWZJ1MR4lAa9uQIrBLE"
+    MISTRAL_BASE_URL  = "https://api.mistral.ai/v1"
+    
+    # ── Respaldo (Groq) ────────────────────────
+    BACKUP_API_KEY    = "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"
+    BACKUP_MODEL      = "llama-3.3-70b-versatile"
+    BACKUP_BASE_URL   = "https://api.groq.com/openai/v1"
     def __init__(
         self,
         event_queue:     Optional[queue.Queue]              = None,
@@ -545,12 +552,10 @@ class NovaAgent:
 
     # ── Inicialización ─────────────────────────
     def _init_model(self):
-        try:
-            self._model = Groq(api_key=self.GROQ_API_KEY)
-            log.info("Modelo Groq inicializado correctamente.")
-        except Exception as e:
-            log.error(f"Error al inicializar Groq: {e}")
-            self._model = None
+        # Como usamos Mistral y no el SDK de Groq, lo haremos todo mediante requests.
+        # Por lo tanto, no instanciamos el cliente de Groq.
+        self._model = True # Flag para indicar que el modelo está "listo"
+        log.info("Cliente de IA inicializado (Mistral principal, Groq respaldo).")
 
     # ── API pública ────────────────────────────
     def start(self):
@@ -735,19 +740,47 @@ class NovaAgent:
         messages.append({"role": "user", "content": prompt})
 
         try:
-            response = self._model.chat.completions.create(
-                model=self.GROQ_MODEL,
-                messages=messages,
-                max_tokens=300,
-                temperature=0.7,
-            )
-            bot_text = response.choices[0].message.content.strip()
+            import requests
+            headers = {
+                "Authorization": f"Bearer {self.MISTRAL_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            data = {
+                "model": self.MISTRAL_MODEL,
+                "messages": messages,
+                "max_tokens": 300,
+                "temperature": 0.7
+            }
+            primary_url = f"{self.MISTRAL_BASE_URL.rstrip('/')}/chat/completions"
+            resp = requests.post(primary_url, headers=headers, json=data, timeout=10)
+            resp.raise_for_status()
+            bot_text = resp.json()["choices"][0]["message"]["content"].strip()
             self._memory.add_turn(user_text, bot_text)
             return bot_text
 
         except Exception as e:
-            log.error(f"Error en Groq: {e}")
-            return "Tuve un problema al procesar tu pregunta. ¿Puedes repetirla?"
+            log.warning(f"Aviso: Falló la API principal de Mistral ({e}). Intentando con API de respaldo (Groq)...")
+            try:
+                import requests
+                headers = {
+                    "Authorization": f"Bearer {self.BACKUP_API_KEY}",
+                    "Content-Type": "application/json"
+                }
+                data = {
+                    "model": self.BACKUP_MODEL,
+                    "messages": messages,
+                    "max_tokens": 300,
+                    "temperature": 0.7
+                }
+                backup_url = f"{self.BACKUP_BASE_URL.rstrip('/')}/chat/completions"
+                resp = requests.post(backup_url, headers=headers, json=data, timeout=10)
+                resp.raise_for_status()
+                bot_text = resp.json()["choices"][0]["message"]["content"].strip()
+                self._memory.add_turn(user_text, bot_text)
+                return bot_text
+            except Exception as backup_e:
+                log.error(f"Error en API de respaldo: {backup_e}")
+                return "Tuve un problema al procesar tu pregunta. ¿Puedes repetirla?"
 
     def _match_tool(self, text: str) -> Optional[str]:
         lower = text.lower()

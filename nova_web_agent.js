@@ -50,6 +50,10 @@ PERSONALIDAD:
 - Hablas en español natural, cálido y accesible. Nunca suenas robótico.
 - Cuando no sabes algo, lo admites y ofreces buscar o razonar juntos.
 - En una feria: eres el anfitrión del stand, bienvenido a las personas y guías la conversación.
+- No digas nada de asteriscos, solo habla normalmente, ademas que las respuestas sean cortas y concisas.
+- Tampoco uses en tus respuestas Emojis.
+- No coloque ninguna palabra en negrilla para evitar que digas asterisco asterisco
+- No alucinaras ni inventaras cosas que no pasaron o no se te pidan vale.
 
 MISIÓN DEL CENTRO: ${GROUP_INFO.mision}
 VISIÓN: ${GROUP_INFO.vision}
@@ -72,7 +76,8 @@ REGLAS DE RESPUESTA:
 3. Preguntas sobre proyectos, máquinas o equipo: usa la información de arriba, sé específico.
 4. Si preguntan qué pueden hacer en el centro: menciona máquinas y servicios disponibles.
 5. Conecta las preguntas técnicas con el trabajo del centro cuando sea natural.
-6. En una feria: sé dinámico, invita a explorar el stand y hacer preguntas.`;
+6. En una feria: sé dinámico, invita a explorar el stand y hacer preguntas.
+7. NUNCA asumas que la persona con la que hablas es miembro del equipo del Centro, incluso si su nombre coincide (ej. Daniel, Jerson). Trátalos siempre como visitantes externos de la feria.`;
 }
 
 export const AgentState = {
@@ -85,21 +90,32 @@ export const AgentState = {
 
 export class NovaAgent {
   constructor(options) {
-    this.onStateChange = options.onStateChange || (() => {});
-    this.onUserText = options.onUserText || (() => {});
-    this.onBotResponse = options.onBotResponse || (() => {});
-    this.onSpeakingStart = options.onSpeakingStart || (() => {});
-    this.onSpeakingEnd = options.onSpeakingEnd || (() => {});
+    this.onStateChange = options.onStateChange || (() => { });
+    this.onUserText = options.onUserText || (() => { });
+    this.onBotResponse = options.onBotResponse || (() => { });
+    this.onSpeakingStart = options.onSpeakingStart || (() => { });
+    this.onSpeakingEnd = options.onSpeakingEnd || (() => { });
 
     this.state = AgentState.IDLE;
     this.isRunning = false;
     this.isSpeaking = false;
-    
-    this.apiKey = "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";
-    this.model = "llama-3.3-70b-versatile";
-    
+
+    // Principal (Mistral)
+    this.apiKey = "wilaDrxkdELjQMWZJ1MR4lAa9uQIrBLE";
+    this.model = "mistral-large-2512";
+    this.baseUrl = "https://api.mistral.ai/v1";
+
+    // Respaldo (Groq)
+    this.backupApiKey = "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";
+    this.backupModel = "llama-3.3-70b-versatile";
+    this.backupBaseUrl = "https://api.groq.com/openai/v1";
+
     this.history = [];
     this.maxTurns = 20;
+
+    // Variables para retraso de escucha
+    this.fullTranscript = "";
+    this.speechTimeout = null;
 
     // Inicializar Speech Recognition
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -119,7 +135,20 @@ export class NovaAgent {
         const current = event.resultIndex;
         const transcript = event.results[current][0].transcript.trim();
         if (transcript) {
-          this.handleInput(transcript);
+          this.fullTranscript += (this.fullTranscript ? " " : "") + transcript;
+
+          // Mostrar texto parcial en pantalla mientras espera
+          this.onUserText(this.fullTranscript + "...");
+
+          if (this.speechTimeout) clearTimeout(this.speechTimeout);
+
+          this.speechTimeout = setTimeout(() => {
+            const finalText = this.fullTranscript.trim();
+            this.fullTranscript = ""; // Limpiar
+            if (finalText) {
+              this.handleInput(finalText);
+            }
+          }, 3000); // 3 segundos de espera tras la última palabra
         }
       };
 
@@ -127,17 +156,17 @@ export class NovaAgent {
         console.error("Speech Recognition Error:", event.error);
         if (event.error !== 'no-speech') {
           setTimeout(() => {
-            if (this.isRunning && !this.isSpeaking) this.recognition.start();
+            if (this.isRunning && !this.isSpeaking && this.state !== AgentState.THINKING) this.recognition.start();
           }, 1000);
         }
       };
 
       this.recognition.onend = () => {
-        // Reiniciar si sigue corriendo y no está hablando
-        if (this.isRunning && !this.isSpeaking) {
+        // Reiniciar si sigue corriendo y no está hablando ni pensando
+        if (this.isRunning && !this.isSpeaking && this.state !== AgentState.THINKING) {
           try {
             this.recognition.start();
-          } catch(e) {}
+          } catch (e) { }
         }
       };
     } else {
@@ -155,7 +184,7 @@ export class NovaAgent {
     this.isRunning = true;
     this.history = [];
     this.setState(AgentState.LISTENING);
-    
+
     const greeting = this.getGreeting();
     this.onBotResponse(greeting);
     this.speak(greeting);
@@ -163,6 +192,8 @@ export class NovaAgent {
 
   stop() {
     this.isRunning = false;
+    if (this.speechTimeout) clearTimeout(this.speechTimeout);
+    this.fullTranscript = "";
     if (this.recognition) this.recognition.stop();
     window.speechSynthesis.cancel();
     this.isSpeaking = false;
@@ -173,15 +204,15 @@ export class NovaAgent {
   getGreeting() {
     const h = new Date().getHours();
     const turno = h < 12 ? "días" : (h < 18 ? "tardes" : "noches");
-    return `¡Buenas ${turno}! Soy NOVA, el agente de inteligencia artificial del Centro de Prototipado. Bienvenidos a nuestra feria. Estoy aquí para contarles sobre nuestros proyectos, máquinas y servicios. ¿Con quién tengo el gusto?`;
+    return `¡Buenas ${turno}! Soy NOVA, el agente de inteligencia artificial del Centro de Prototipado. Bienvenidos a la feria de emprendimientos. Estoy aquí para contarles sobre nuestros proyectos, máquinas y servicios. ¿Con quién tengo el gusto?`;
   }
 
   async handleInput(text) {
     if (!this.isRunning) return;
-    
+
     // Pausar escucha mientras piensa y habla
     if (this.recognition) this.recognition.stop();
-    
+
     this.onUserText(text);
     this.setState(AgentState.THINKING);
 
@@ -217,26 +248,57 @@ export class NovaAgent {
       ...this.history
     ];
 
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: this.model,
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 300
-      })
-    });
+    let botText = "";
 
-    if (!response.ok) {
-      throw new Error("Error en llamada a Groq API");
+    try {
+      const primaryUrl = `${this.baseUrl.replace(/\/$/, '')}/chat/completions`;
+      const response = await fetch(primaryUrl, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: this.model,
+          messages: messages,
+          temperature: 0.7,
+          max_tokens: 300
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error en llamada a la API principal (Mistral): ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      botText = data.choices[0].message.content.trim();
+
+    } catch (e) {
+      console.warn("Falló la API principal. Intentando con la API de respaldo (Groq)...", e);
+
+      const backupUrl = `${this.backupBaseUrl.replace(/\/$/, '')}/chat/completions`;
+      const backupResponse = await fetch(backupUrl, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${this.backupApiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: this.backupModel,
+          messages: messages,
+          temperature: 0.7,
+          max_tokens: 300
+        })
+      });
+
+      if (!backupResponse.ok) {
+        throw new Error(`Error en llamada a API de respaldo: ${backupResponse.statusText}`);
+      }
+
+      const backupData = await backupResponse.json();
+      botText = backupData.choices[0].message.content.trim();
     }
 
-    const data = await response.json();
-    const botText = data.choices[0].message.content.trim();
     this.history.push({ role: "assistant", content: botText });
     return botText;
   }
@@ -247,13 +309,13 @@ export class NovaAgent {
     this.isSpeaking = true;
     this.setState(AgentState.SPEAKING);
     this.onSpeakingStart(text);
-    
+
     window.speechSynthesis.cancel(); // Detener audios anteriores
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "es-MX";
     utterance.rate = 1.0;
-    
+
     // Buscar voz natural si está disponible
     const voices = window.speechSynthesis.getVoices();
     const googleVoice = voices.find(v => v.lang.includes("es-") && v.name.includes("Google"));
@@ -266,7 +328,7 @@ export class NovaAgent {
       if (this.isRunning) {
         this.setState(AgentState.LISTENING);
         if (this.recognition) {
-          try { this.recognition.start(); } catch(e) {}
+          try { this.recognition.start(); } catch (e) { }
         }
       }
       this.onSpeakingEnd();
@@ -277,7 +339,7 @@ export class NovaAgent {
       if (this.isRunning) {
         this.setState(AgentState.LISTENING);
         if (this.recognition) {
-          try { this.recognition.start(); } catch(e) {}
+          try { this.recognition.start(); } catch (e) { }
         }
       }
       this.onSpeakingEnd();
