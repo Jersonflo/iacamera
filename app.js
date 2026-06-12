@@ -1,4 +1,5 @@
 import { FaceDetector, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8/vision_bundle.mjs";
+import { NovaAgent, AgentState } from "./nova_web_agent.js";
 
 // ═══════════════════════════════════════════════════════════════════
 //  IACamera Web 2.0 - Lógica de Control
@@ -23,6 +24,13 @@ const canvasElement = document.getElementById('outputCanvas');
 const canvasCtx = canvasElement.getContext('2d');
 const videoPlaceholder = document.getElementById('videoPlaceholder');
 
+// Elementos de Nova Agent
+const btnToggleNova = document.getElementById('btnToggleNova');
+const novaSubtitles = document.getElementById('novaSubtitles');
+const lblUserText = document.getElementById('lblUserText');
+const lblBotText = document.getElementById('lblBotText');
+const statNova = document.getElementById('statNova');
+
 // Elementos de Estado y Badge
 const camStatusDot = document.getElementById('camStatusDot');
 const systemStatusText = document.getElementById('systemStatusText');
@@ -45,6 +53,9 @@ let isCameraRunning = false;
 let lastCommandTime = 0;
 let lastRobotStateText = "";
 
+// Variable para pausar tracker (servos) cuando habla NOVA
+let pauseTracker = false;
+
 // Variables para FPS
 let lastFrameTime = performance.now();
 let frameCount = 0;
@@ -62,6 +73,51 @@ deadZoneWidth.addEventListener('input', (e) => {
 deadZoneHeight.addEventListener('input', (e) => {
   dzH = parseInt(e.target.value);
   valDzH.textContent = `${dzH} px`;
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  INSTANCIA DE NOVA AGENT
+// ═══════════════════════════════════════════════════════════════════
+const agent = new NovaAgent({
+  onStateChange: (state) => {
+    statNova.textContent = state;
+    if (state === AgentState.LISTENING) {
+      log("NOVA: Escuchando...");
+    }
+  },
+  onUserText: (text) => {
+    lblUserText.textContent = `Usuario: ${text}`;
+    log(`👤 ${text}`);
+  },
+  onBotResponse: (text) => {
+    const display = text.length <= 120 ? text : text.substring(0, 117) + "...";
+    lblBotText.textContent = `NOVA: ${display}`;
+    log(`🤖 ${text.substring(0, 80)}...`);
+  },
+  onSpeakingStart: (text) => {
+    pauseTracker = true;
+    log("🔊 NOVA hablando — tracker pausado");
+  },
+  onSpeakingEnd: () => {
+    pauseTracker = false;
+    log("👂 NOVA escuchando — tracker activo");
+  }
+});
+
+btnToggleNova.addEventListener('click', () => {
+  if (agent.isRunning) {
+    agent.stop();
+    btnToggleNova.textContent = "🎙️ Activar NOVA";
+    btnToggleNova.style.backgroundColor = "#8e44ad";
+    novaSubtitles.style.display = 'none';
+    log("NOVA desactivada.");
+  } else {
+    agent.start();
+    btnToggleNova.textContent = "🔇 Desactivar NOVA";
+    btnToggleNova.style.backgroundColor = "var(--btn-stop)";
+    novaSubtitles.style.display = 'flex';
+    log("NOVA activada.");
+  }
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -441,28 +497,32 @@ function onResults(results) {
 
     let cmd_label = "";
 
-    // Eje Horizontal
-    if (Math.abs(diff_x) > dz_w / 2) {
-      if (diff_x < 0) {
-        cmd_label = "← Izquierda";
-        sendSerialCommand('i');
-      } else {
-        cmd_label = "→ Derecha";
-        sendSerialCommand('d');
+    if (!pauseTracker) {
+      // Eje Horizontal
+      if (Math.abs(diff_x) > dz_w / 2) {
+        if (diff_x < 0) {
+          cmd_label = "← Izquierda";
+          sendSerialCommand('i');
+        } else {
+          cmd_label = "→ Derecha";
+          sendSerialCommand('d');
+        }
       }
-    }
 
-    // Eje Vertical
-    if (Math.abs(diff_y) > dz_h / 2) {
-      if (diff_y < 0) {
-        const suffix = "↑ Arriba";
-        sendSerialCommand('b');
-        cmd_label = cmd_label ? `${cmd_label} ${suffix}` : suffix;
-      } else {
-        const suffix = "↓ Abajo";
-        sendSerialCommand('a');
-        cmd_label = cmd_label ? `${cmd_label} ${suffix}` : suffix;
+      // Eje Vertical
+      if (Math.abs(diff_y) > dz_h / 2) {
+        if (diff_y < 0) {
+          const suffix = "↑ Arriba";
+          sendSerialCommand('b');
+          cmd_label = cmd_label ? `${cmd_label} ${suffix}` : suffix;
+        } else {
+          const suffix = "↓ Abajo";
+          sendSerialCommand('a');
+          cmd_label = cmd_label ? `${cmd_label} ${suffix}` : suffix;
+        }
       }
+    } else {
+      cmd_label = "Pausado (Hablando)";
     }
 
     const robotState = cmd_label || "Centrado";

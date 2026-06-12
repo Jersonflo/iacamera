@@ -36,6 +36,11 @@
             <span class="placeholder-icon">🎥</span>
             <span class="placeholder-text">Cámara apagada</span>
           </div>
+          <!-- ÁREA DE SUBTÍTULOS NOVA -->
+          <div class="nova-subtitles" id="novaSubtitles" style="display:none;">
+            <div class="nova-subtitle-user" id="lblUserText">Usuario: ...</div>
+            <div class="nova-subtitle-bot" id="lblBotText">NOVA: ...</div>
+          </div>
         </div>
       </section>
 
@@ -49,6 +54,7 @@
           <button id="btnStartCamera" class="btn btn-start" disabled>▶ Iniciar Cámara</button>
           <button id="btnStopCamera" class="btn btn-stop" disabled>⏹ Detener Cámara</button>
           <button id="btnCenterServos" class="btn btn-gray" disabled>🎯 Centrar Servos</button>
+          <button id="btnToggleNova" class="btn btn-nova">🎙️ Activar NOVA</button>
         </div>
 
         <!-- SECCIÓN CONFIGURACIÓN -->
@@ -106,6 +112,10 @@
             <div class="stat-item">
               <span class="stat-lbl">Estado Robot</span>
               <span class="stat-val highlight" id="statRobot">Esperando</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-lbl">NOVA Estado</span>
+              <span class="stat-val highlight" id="statNova">Inactivo</span>
             </div>
           </div>
         </div>

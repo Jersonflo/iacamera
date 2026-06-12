@@ -509,7 +509,7 @@ class NovaAgent:
     LISTEN_TIMEOUT    = 3
     PHRASE_TIME_LIMIT = 12
     GROQ_MODEL        = "llama-3.3-70b-versatile"
-    GROQ_API_KEY      = "pon tu llave aqui"        
+    GROQ_API_KEY      = "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"        
     def __init__(
         self,
         event_queue:     Optional[queue.Queue]              = None,
