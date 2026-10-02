@@ -28,6 +28,12 @@ import edge_tts
 import pygame
 from groq import Groq
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # ──────────────────────────────────────────────────────────────
 # LOGGING
 # ──────────────────────────────────────────────────────────────
@@ -510,11 +516,11 @@ class NovaAgent:
     LISTEN_TIMEOUT    = 3
     PHRASE_TIME_LIMIT = 12
     MISTRAL_MODEL     = "mistral-large-2512"
-    MISTRAL_API_KEY   = "wilaDrxkdELjQMWZJ1MR4lAa9uQIrBLE"
+    MISTRAL_API_KEY   = os.environ.get("MISTRAL_API_KEY", "")
     MISTRAL_BASE_URL  = "https://api.mistral.ai/v1"
     
     # ── Respaldo (Groq) ────────────────────────
-    BACKUP_API_KEY    = "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"
+    BACKUP_API_KEY    = os.environ.get("GROQ_API_KEY", "")
     BACKUP_MODEL      = "llama-3.3-70b-versatile"
     BACKUP_BASE_URL   = "https://api.groq.com/openai/v1"
     def __init__(

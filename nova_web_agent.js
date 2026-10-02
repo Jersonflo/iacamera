@@ -101,12 +101,12 @@ export class NovaAgent {
     this.isSpeaking = false;
 
     // Principal (Mistral)
-    this.apiKey = "wilaDrxkdELjQMWZJ1MR4lAa9uQIrBLE";
+    this.apiKey = (window.NOVA_CONFIG || {}).MISTRAL_API_KEY || "";
     this.model = "mistral-large-2512";
     this.baseUrl = "https://api.mistral.ai/v1";
 
     // Respaldo (Groq)
-    this.backupApiKey = "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";
+    this.backupApiKey = (window.NOVA_CONFIG || {}).GROQ_API_KEY || "";
     this.backupModel = "llama-3.3-70b-versatile";
     this.backupBaseUrl = "https://api.groq.com/openai/v1";
 
